@@ -81,3 +81,17 @@ Les limites existantes sont conservées : le chargement de la page Super Admin e
 
 ## Navigation directe et traduction française
 Chaque section est accessible directement aux adresses `/summary`, `/members`, `/cycles`, `/meetings`, `/savings`, `/loans`, `/repayments`, `/solidarity`, `/distributions`, `/reports`, `/settings`, `/superadmin`. La navigation par clic conserve la page active sans recharger l'application. Les paramètres internes et les identifiants d'API restent en anglais pour préserver la compatibilité D1 et les anciennes données; seuls les libellés destinés aux utilisateurs sont traduits. Les anciennes URL `/?page=loans` sont acceptées à l'ouverture puis remplacées par `/loans`.
+
+## Nouvelle version : calendrier des cycles et réunions
+
+**Migration obligatoire sur la base existante** : exécuter une seule fois `migrations/0002_cycles_reunions.sql` dans la console D1 de la base liée à `avec_d1` **avant** de publier ce code. Ne pas réexécuter cette migration après réussite (les instructions ALTER TABLE ne sont pas répétables). Conserver `0001_init.sql` pour les nouvelles installations : exécuter ensuite `0002_cycles_reunions.sql`.
+
+- Cycle : 9 ou 12 mois, début libre, fin calculée, réunion hebdomadaire ou tous les 14 jours et jour de la semaine, amende individuelle.
+- Liste de cycles : durée, début, fin, fréquence, jour, amende, statut et bouton Clôturer.
+- Clôture : réservée à l'administrateur, mot de passe vérifié dans le Worker, crédits soldés exigés ; cycle clôturé non modifiable.
+- Réunions : dates prévues et saisie par membre des présences et paiements d'amendes.
+- Épargnes : dates prévues et cotisations par membre, une saisie par réunion.
+- Le gain de partage estimé additionne les **amendes encaissées**, jamais les impayés. Un registre des amendes non encaissées demeure dans les réunions.
+- Les membres actuellement actifs de l'association apparaissent dans chaque réunion. L'inscription formelle à un cycle et les états historiques figés des participants ne sont pas encore gérés.
+
+**Attention** : avant clôture, effectuer votre rapprochement manuel ; cette version exige les crédits soldés mais ne constitue pas un moteur comptable complet de liquidation et versement du partage.
