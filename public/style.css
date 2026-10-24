@@ -2,3 +2,8 @@
 
 /* Navigation directe, légère, avec liens partageables */
 #nav a{display:inline-flex;align-items:center;white-space:nowrap;text-decoration:none;color:inherit;padding:11px 15px;border-radius:9px;font-weight:600;font-size:13px}#nav a:hover{background:#e0f4eb;color:#086449}#nav a.active{background:#e0f4eb;color:#086449}#nav{overflow-x:auto;scrollbar-width:thin}#nav a:focus-visible{outline:2px solid #d9a441;outline-offset:2px}
+
+/* Affichage pleine largeur sur ordinateur, tablette et mobile */
+html,body,#app{width:100%;min-width:0}main{max-width:none!important;width:100%;margin:0!important;padding:clamp(12px,2vw,28px)!important;min-height:calc(100vh - 160px)}
+#view,.card,.table-wrap{max-width:100%;min-width:0}nav{width:100%;max-width:100%}.grid{width:100%}.modal{max-width:min(900px,96vw)}
+@media(max-width:700px){main{padding:12px!important}.card{padding:12px}.table-wrap{max-width:100%;overflow-x:auto}.modal{width:96vw;padding:17px}}

@@ -95,3 +95,10 @@ Chaque section est accessible directement aux adresses `/summary`, `/members`, `
 - Les membres actuellement actifs de l'association apparaissent dans chaque réunion. L'inscription formelle à un cycle et les états historiques figés des participants ne sont pas encore gérés.
 
 **Attention** : avant clôture, effectuer votre rapprochement manuel ; cette version exige les crédits soldés mais ne constitue pas un moteur comptable complet de liquidation et versement du partage.
+
+## Mise à jour : pleine page et modification des cycles
+
+- Toutes les vues utilisent désormais la largeur disponible de l'écran (sans limite de 1 350 px).
+- Sur la page Cycles, la colonne Statut présente « Modifier » et « Clôturer » pour les cycles actifs aux administrateurs.
+- Modification des champs du cycle (durée, dates, fréquence, valeur de part, amende) uniquement avant toute opération du cycle ; après les premiers mouvements, seul le nom peut changer. Les cycles clôturés restent verrouillés.
+- Aucune migration SQL supplémentaire requise. Conserver les secrets et liaisons existants.
