@@ -55,3 +55,8 @@ Le compte `mega@service.local` est créé automatiquement côté serveur à la p
 **À compléter avant usage financier réel :** moteur transactionnel comptable à double entrée et contrôles de trésorerie/encours, validations collectives des prêts, pénalités configurables, intérêts dégressifs, clôture définitive avec gestion des impayés et pertes, distribution effective, reçus PDF, rapprochements, pagination profonde, export XLSX/PDF et contrôles de concurrence des opérations financières. La simulation de partage est **non exécutoire**. Cette version est un socle opérationnel technique, **pas encore un logiciel certifié pour détenir ou distribuer des fonds réels**.
 
 **Prudence :** les données D1 sont sensibles. Activer des sauvegardes/restaurations, tester sur un environnement séparé, et vérifier le cadre juridique/réglementaire des AVEC en Côte d'Ivoire.
+
+
+## Correctif PBKDF2 Cloudflare (octobre 2026)
+
+`public/_worker.js` utilise 100 000 itérations PBKDF2-SHA256, maximum accepté par le runtime constaté (erreur avec 310 000). Le mot de passe initial du Super Admin reste un secret Cloudflare (`SUPERADMIN_INITIAL_PASSWORD`) et ne figure pas dans les sources. Si des comptes avaient déjà été hachés avec 310 000 itérations dans un autre environnement, une migration/réinitialisation sécurisée de ces comptes est requise, car changer uniquement le nombre d’itérations ne préservera pas leurs hashes. Cette correction n’efface aucune table D1.

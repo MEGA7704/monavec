@@ -7,7 +7,7 @@ const now=()=>Date.now();
 const hex=a=>[...new Uint8Array(a)].map(b=>b.toString(16).padStart(2,'0')).join('');
 const digest=async s=>hex(await crypto.subtle.digest('SHA-256',encoder.encode(s)));
 const random=()=>hex(crypto.getRandomValues(new Uint8Array(32)));
-async function hashPassword(pass,salt){let key=await crypto.subtle.importKey('raw',encoder.encode(pass),'PBKDF2',false,['deriveBits']);return hex(await crypto.subtle.deriveBits({name:'PBKDF2',salt:encoder.encode(salt),iterations:310000,hash:'SHA-256'},key,256));}
+async function hashPassword(pass,salt){let key=await crypto.subtle.importKey('raw',encoder.encode(pass),'PBKDF2',false,['deriveBits']);return hex(await crypto.subtle.deriveBits({name:'PBKDF2',salt:encoder.encode(salt),iterations:100000,hash:'SHA-256'},key,256));}
 const equal=(a,b)=>{if(typeof a!=='string'||typeof b!=='string'||a.length!==b.length)return false;let x=0;for(let i=0;i<a.length;i++)x|=a.charCodeAt(i)^b.charCodeAt(i);return x===0;};
 const fail=(message,status=400)=>j({ok:false,error:message},status);
 const sessionCookie=(token,age)=>`avec_session=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${age}`;
