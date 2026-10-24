@@ -1,0 +1,12 @@
+name = "avec-manager-pro"
+compatibility_date = "2026-10-01"
+pages_build_output_dir = "public"
+
+[[d1_databases]]
+binding = "avec_d1"
+database_name = "avec_d1"
+database_id = "bd6bdc50-08de-491f-b989-56a8c6557244"
+
+[[kv_namespaces]]
+binding = "avec_kv"
+id = "4a4e87291203410187ba0052f4f6abae"
