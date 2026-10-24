@@ -101,4 +101,4 @@ return fail('Action inconnue',404);}
 return fail('Route inconnue',404);
 }catch(e){let msg=e.message||'Erreur serveur';return fail(msg,400);}
 }
-export default {async fetch(req,env,ctx){let path=new URL(req.url).pathname;if(path.startsWith('/api/')){try{return await api(req,env);}catch(e){return fail('Erreur du serveur : vérifiez la migration D1 et les secrets Cloudflare',500);}}return env.ASSETS.fetch(req);}};
+export default {async fetch(req,env,ctx){let path=new URL(req.url).pathname;if(path.startsWith('/api/')){try{return await api(req,env);}catch(e){return fail('Erreur du serveur : vérifiez la migration D1 et les secrets Cloudflare',500);}}if(req.method==='GET' && /^\/(summary|members|cycles|meetings|savings|loans|repayments|solidarity|expenses|distributions|reports|settings|users|audit|superadmin)\/?$/.test(path)){const url=new URL(req.url);url.pathname='/index.html';return env.ASSETS.fetch(new Request(url.toString(),req));}return env.ASSETS.fetch(req);}};

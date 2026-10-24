@@ -77,3 +77,7 @@ Chaque entrée du menu possède une URL partageable, par exemple `/?page=members
 La navigation utilise History API : aucune actualisation complète de la page lors d'un clic du menu. Une seule section D1 est chargée par demande. Les données de listes consultées sont conservées **uniquement en mémoire de l'onglet** pendant 20 secondes et sont invalidées à chaque écriture métier réussie. La réponse d'une navigation obsolète ne remplace pas l'écran plus récent. Un rafraîchissement navigateur rouvre le lien sélectionné après validation de session.
 
 Les limites existantes sont conservées : le chargement de la page Super Admin effectue encore plusieurs appels D1 ; les listes serveur sont bornées mais ne disposent pas encore de pagination SQL complète. Le cache en mémoire n'est pas une preuve d'actualisation financière temps réel. Aucun changement de migration ni de secrets n'est nécessaire.
+
+
+## Navigation directe et traduction française
+Chaque section est accessible directement aux adresses `/summary`, `/members`, `/cycles`, `/meetings`, `/savings`, `/loans`, `/repayments`, `/solidarity`, `/distributions`, `/reports`, `/settings`, `/superadmin`. La navigation par clic conserve la page active sans recharger l'application. Les paramètres internes et les identifiants d'API restent en anglais pour préserver la compatibilité D1 et les anciennes données; seuls les libellés destinés aux utilisateurs sont traduits. Les anciennes URL `/?page=loans` sont acceptées à l'ouverture puis remplacées par `/loans`.
