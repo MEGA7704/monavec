@@ -68,3 +68,12 @@ Depuis la page de connexion, le bouton **Créer mon AVEC et mon compte administr
 Le nom et l'adresse de connexion Super Admin restent inchangés. Aucun secret Super Admin n'est inclus dans le dépôt. Aucune nouvelle table SQL n'est nécessaire pour cette fonctionnalité ; conservez les données D1 existantes.
 
 **Sécurité et mise en production :** l'inscription publique est activée. Avant une ouverture commerciale à grande échelle, ajouter CAPTCHA/Turnstile, validation de possession de l'e-mail et surveillance anti-abus. L'outil d'inscription limite actuellement les requêtes par IP et e-mail à l'aide de la table `login_attempts`.
+
+
+## Navigation rapide (version optimisée)
+
+Chaque entrée du menu possède une URL partageable, par exemple `/?page=members`, `/?page=savings`, `/?page=loans`, `/?page=repayments`, `/?page=reports`, `/?page=settings`, `/?page=superadmin`. Ce format de lien préserve le routage des assets Cloudflare Pages sans règle de réécriture supplémentaire.
+
+La navigation utilise History API : aucune actualisation complète de la page lors d'un clic du menu. Une seule section D1 est chargée par demande. Les données de listes consultées sont conservées **uniquement en mémoire de l'onglet** pendant 20 secondes et sont invalidées à chaque écriture métier réussie. La réponse d'une navigation obsolète ne remplace pas l'écran plus récent. Un rafraîchissement navigateur rouvre le lien sélectionné après validation de session.
+
+Les limites existantes sont conservées : le chargement de la page Super Admin effectue encore plusieurs appels D1 ; les listes serveur sont bornées mais ne disposent pas encore de pagination SQL complète. Le cache en mémoire n'est pas une preuve d'actualisation financière temps réel. Aucun changement de migration ni de secrets n'est nécessaire.
