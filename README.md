@@ -60,3 +60,11 @@ Le compte `mega@service.local` est créé automatiquement côté serveur à la p
 ## Correctif PBKDF2 Cloudflare (octobre 2026)
 
 `public/_worker.js` utilise 100 000 itérations PBKDF2-SHA256, maximum accepté par le runtime constaté (erreur avec 310 000). Le mot de passe initial du Super Admin reste un secret Cloudflare (`SUPERADMIN_INITIAL_PASSWORD`) et ne figure pas dans les sources. Si des comptes avaient déjà été hachés avec 310 000 itérations dans un autre environnement, une migration/réinitialisation sécurisée de ces comptes est requise, car changer uniquement le nombre d’itérations ne préservera pas leurs hashes. Cette correction n’efface aucune table D1.
+
+## Inscription autonome des AVEC
+
+Depuis la page de connexion, le bouton **Créer mon AVEC et mon compte administrateur** ouvre le formulaire d'inscription. La route publique `GET /api/register-token` génère un jeton à durée limitée (KV), et `POST /api/register` crée atomiquement l'association et son compte `admin` dans D1, avec un plan **Free de 10 jours**. L'inscription ne peut attribuer ni le rôle Super Admin, ni un abonnement payant. Les sessions et le contrôle des données restent séparés par `org_id`.
+
+Le nom et l'adresse de connexion Super Admin restent inchangés. Aucun secret Super Admin n'est inclus dans le dépôt. Aucune nouvelle table SQL n'est nécessaire pour cette fonctionnalité ; conservez les données D1 existantes.
+
+**Sécurité et mise en production :** l'inscription publique est activée. Avant une ouverture commerciale à grande échelle, ajouter CAPTCHA/Turnstile, validation de possession de l'e-mail et surveillance anti-abus. L'outil d'inscription limite actuellement les requêtes par IP et e-mail à l'aide de la table `login_attempts`.

@@ -4,6 +4,18 @@ async function req(path,data){let options={credentials:'same-origin',headers:{}}
 function openModal(title,html){$('#modalTitle').textContent=title;$('#modalBody').innerHTML=html;$('#modal').hidden=false;wireEyes()}
 function closeModal(){$('#modal').hidden=true}
 $('#closeModal').onclick=closeModal;function wireEyes(){document.querySelectorAll('[data-eye]').forEach(b=>b.onclick=()=>{let i=document.getElementById(b.dataset.eye);i.type=i.type==='password'?'text':'password';b.textContent=i.type==='password'?'◉':'⊘'})}wireEyes();
+$('#register').onclick=async()=>{
+ try{
+  let token=(await req('/api/register-token')).token;
+  openModal('Créer ma banque de gestion AVEC',`<p class="muted">Créez votre association et son administrateur. Chaque AVEC possède un espace de gestion indépendant. Votre formule Free de 10 jours démarre à l’inscription.</p><form id="registerForm"><label>Nom de votre AVEC<input name="organization" maxlength="150" required placeholder="Ex. AVEC Solidarité de Diabo"></label><label>Localité<input name="locality" maxlength="100" placeholder="Ville ou village"></label><label>Nom et prénoms de l’administrateur<input name="name" maxlength="150" required></label><label>E-mail de connexion<input name="email" type="email" autocomplete="email" maxlength="200" required></label><label>Mot de passe administrateur (12 caractères minimum)<div class="password-wrap"><input id="regPassword" name="password" type="password" minlength="12" maxlength="128" autocomplete="new-password" required><button type="button" class="eye" data-eye="regPassword" aria-label="Afficher ou masquer le mot de passe">◉</button></div></label><label>Confirmer le mot de passe<div class="password-wrap"><input id="regConfirm" name="password_confirm" type="password" minlength="12" maxlength="128" autocomplete="new-password" required><button type="button" class="eye" data-eye="regConfirm" aria-label="Afficher ou masquer le mot de passe">◉</button></div></label><p class="tiny">En créant votre compte, vous acceptez que les informations de votre AVEC soient conservées pour fournir le service.</p><button class="primary full">Créer mon AVEC · Essai gratuit 10 jours</button></form>`);
+  $('#registerForm').onsubmit=async e=>{
+   e.preventDefault();let form=e.target,data=Object.fromEntries(new FormData(form));
+   if(data.password!==data.password_confirm)return toast('Les deux mots de passe sont différents');
+   let btn=form.querySelector('button.primary');btn.disabled=true;
+   try{let r=await req('/api/register',{...data,registration_token:token});closeModal();$('#email').value=data.email;$('#password').value='';toast(r.message+' Connectez-vous pour commencer.')}catch(err){toast(err.message);btn.disabled=false;token=(await req('/api/register-token')).token}
+  };
+ }catch(e){toast(e.message)}
+};
 $('#forgot').onclick=()=>openModal('Mot de passe oublié',`<p>La demande sera transmise au responsable habilité. L'administrateur est assisté par le Super Admin ; l'agent par son administrateur.</p><form id="resetForm"><label>E-mail du compte<input name="email" type="email" required></label><button class="primary full">Envoyer la demande</button></form>`);
 $('#modal').addEventListener('submit',async e=>{if(e.target.id==='resetForm'){e.preventDefault();try{await req('/api/public-reset',Object.fromEntries(new FormData(e.target)));toast('Demande enregistrée si le compte existe');closeModal()}catch(err){toast(err.message)}}});
 $('#loginForm').onsubmit=async e=>{e.preventDefault();try{let r=await req('/api/login',{email:$('#email').value,password:$('#password').value});csrf=r.csrf;me=r.user;$('#password').value='';await enter()}catch(err){toast(err.message)}};

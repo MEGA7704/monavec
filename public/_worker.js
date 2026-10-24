@@ -27,6 +27,40 @@ async function activeCycle(db,org,cycle){return db.prepare("SELECT * FROM cycles
 async function invalidateUser(db,u){await db.prepare('UPDATE users SET password_version=password_version+1 WHERE id=?').bind(u).run();await db.prepare('DELETE FROM sessions WHERE user_id=?').bind(u).run();}
 async function summary(db,org){let q=async sql=>await db.prepare(sql).bind(org).first();let members=await q('SELECT count(*) AS n FROM members WHERE org_id=? AND active=1');let savings=await q('SELECT COALESCE(SUM(amount),0) AS n FROM savings WHERE org_id=?');let loans=await q('SELECT COALESCE(SUM(principal),0) AS n FROM loans WHERE org_id=?');let paid=await q('SELECT COALESCE(SUM(principal_amount),0) AS n FROM repayments WHERE org_id=?');let interest=await q('SELECT COALESCE(SUM(interest_amount),0) AS n FROM repayments WHERE org_id=?');let expenses=await q('SELECT COALESCE(SUM(amount),0) AS n FROM expenses WHERE org_id=?');let social=await q("SELECT COALESCE(SUM(CASE WHEN kind='income' THEN amount ELSE -amount END),0) AS n FROM solidarity WHERE org_id=?");return {members:members.n,savings:savings.n,loans:loans.n,principalDue:loans.n-paid.n,interest:interest.n,expenses:expenses.n,solidarity:social.n};}
 async function api(req,env){const db=env.avec_d1;if(!db||!env.avec_kv)return fail('Liaisons D1/KV absentes',503);let url=new URL(req.url),path=url.pathname,method=req.method;const post=method==='POST';
+// Public self-registration: short-lived one-time token plus origin and network/account rate limits.
+if(path==='/api/register-token'&&method==='GET'){
+ let token=random();await env.avec_kv.put('registration:'+await digest(token), '1',{expirationTtl:600});
+ return j({ok:true,token});
+}
+if(path==='/api/register'&&post){
+ try{
+  let origin=req.headers.get('origin');if(!origin||origin!==url.origin)return fail('Origine non autorisée',403);
+  let b=await readBody(req), token=String(b.registration_token||'');
+  if(!/^[a-f0-9]{64}$/.test(token))return fail('Actualisez le formulaire d’inscription',403);
+  let key='registration:'+await digest(token),valid=await env.avec_kv.get(key);
+  if(valid!=='1')return fail('Formulaire expiré : recommencez',403);
+  await env.avec_kv.delete(key);
+  let ip=req.headers.get('CF-Connecting-IP')||'unknown',email=String(b.email||'').trim().toLowerCase(),pwd=String(b.password||'');
+  if(await attempts(db,'register-ip:'+ip)||await attempts(db,'register-email:'+email))return fail('Trop de demandes. Réessayez dans 15 minutes',429);
+  // Count registrations per account/IP without revealing whether an account exists.
+  await Promise.all([badAttempt(db,'register-ip:'+ip),badAttempt(db,'register-email:'+email)]);
+  let org=String(b.organization||'').trim(),locality=String(b.locality||'').trim(),name=String(b.name||'').trim();
+  need(goodName(org)&&goodName(name),'Nom de l’AVEC et nom du responsable requis');
+  need(locality.length<=100,'Localité trop longue');
+  need(/^\S+@\S+\.\S+$/.test(email)&&email.length<=200,'Adresse e-mail invalide');
+  need(validatePassword(pwd),'Mot de passe de 12 à 128 caractères requis');
+  need(b.password_confirm===pwd,'Les mots de passe ne correspondent pas');
+  let existing=await db.prepare('SELECT id FROM users WHERE email=?').bind(email).first();
+  if(existing)return fail('Adresse e-mail déjà utilisée. Connectez-vous ou demandez une réinitialisation.',409);
+  let oid=id(),uid=id(),t=now(),salt=random(),hash=await hashPassword(pwd,salt);
+  await db.batch([
+   db.prepare('INSERT INTO organizations(id,name,locality,status,plan,plan_started_at,plan_expires_at,created_at) VALUES(?,?,?,?,?,?,?,?)').bind(oid,org,locality,'active','free',t,t+10*86400000,t),
+   db.prepare('INSERT INTO users(id,org_id,email,name,role,password_hash,password_salt,created_at) VALUES(?,?,?,?,?,?,?,?)').bind(uid,oid,email,name,'admin',hash,salt,t),
+   db.prepare('INSERT INTO audit_logs(id,org_id,user_id,action,target,details,created_at) VALUES(?,?,?,?,?,?,?)').bind(id(),oid,uid,'self_registration',oid,'Free 10 jours',t)
+  ]);
+  return j({ok:true,message:'Votre AVEC et votre compte administrateur ont été créés. Votre essai Free de 10 jours est actif.'},201);
+ }catch(e){return fail(e.message?.includes('UNIQUE constraint')?'Adresse e-mail déjà utilisée.':('Inscription impossible : '+(e.message||'Erreur')),400);}
+}
 if(path==='/api/login'&&post){try{await initSuperadmin(env);let b=await readBody(req),email=String(b.email||'').trim().toLowerCase(),pwd=String(b.password||'');let ip=req.headers.get('CF-Connecting-IP')||'unknown';if(await attempts(db,'ip:'+ip)||await attempts(db,'account:'+email))return fail('Trop de tentatives : réessayez dans 15 minutes',429);let u=await db.prepare('SELECT * FROM users WHERE email=?').bind(email).first();let ok=u&&u.active&&equal(await hashPassword(pwd,u.password_salt),u.password_hash);if(!ok){await Promise.all([badAttempt(db,'ip:'+ip),badAttempt(db,'account:'+email)]);return fail('Identifiants incorrects',401);}let token=random(),csrf=random(),t=now();await db.prepare('INSERT INTO sessions(token_hash,user_id,password_version,csrf_hash,expires_at,created_at) VALUES(?,?,?,?,?,?)').bind(await digest(token+env.SESSION_PEPPER),u.id,u.password_version,await digest(csrf+env.SESSION_PEPPER),t+8*3600000,t).run();await db.prepare('DELETE FROM login_attempts WHERE identifier IN (?,?)').bind('ip:'+ip,'account:'+email).run();await audit(db,u,'login',u.id);return j({ok:true,csrf,user:{id:u.id,name:u.name,email:u.email,role:u.role}},200,{'Set-Cookie':sessionCookie(token,8*3600)});}catch(e){return fail('Connexion impossible : '+e.message,500);}}
 if(path==='/api/public-reset'&&post){try{let b=await readBody(req),email=String(b.email||'').trim().toLowerCase(),ip=req.headers.get('CF-Connecting-IP')||'unknown';if(await attempts(db,'reset:'+ip))return fail('Trop de demandes. Réessayez dans 15 minutes',429);await badAttempt(db,'reset:'+ip);let account=await db.prepare("SELECT id,org_id FROM users WHERE email=? AND role IN ('admin','agent') AND active=1").bind(email).first();if(account){let existing=await db.prepare("SELECT id FROM reset_requests WHERE user_id=? AND status='pending'").bind(account.id).first();if(!existing)await db.prepare('INSERT INTO reset_requests(id,org_id,user_id,reason,created_at) VALUES(?,?,?,?,?)').bind(id(),account.org_id,account.id,'Demande depuis la connexion',now()).run();}return j({ok:true,message:'Si ce compte est reconnu, une demande a été enregistrée pour son responsable.'});}catch(e){return fail('Demande impossible',400);}}
 const u=await auth(req,env);
