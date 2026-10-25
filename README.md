@@ -102,3 +102,15 @@ Chaque section est accessible directement aux adresses `/summary`, `/members`, `
 - Sur la page Cycles, la colonne Statut présente « Modifier » et « Clôturer » pour les cycles actifs aux administrateurs.
 - Modification des champs du cycle (durée, dates, fréquence, valeur de part, amende) uniquement avant toute opération du cycle ; après les premiers mouvements, seul le nom peut changer. Les cycles clôturés restent verrouillés.
 - Aucune migration SQL supplémentaire requise. Conserver les secrets et liaisons existants.
+
+
+## Suppression définitive des cycles
+Dans Cycles > Statut, l'administrateur dispose du bouton « Supprimer » sur les cycles actifs ou clôturés. Le serveur exige son mot de passe actuel, le nom exact du cycle et une confirmation explicite. D1 supprime atomiquement les mouvements associés (réunions, présences/amendes, cotisations, prêts/remboursements, solidarité, dépenses et distributions) puis le cycle, en conservant un journal d'audit avec le décompte des opérations effacées. Aucune migration SQL supplémentaire. **Sauvegarder D1 avant toute suppression.**
+
+
+## Gestion des membres : modification / suppression
+- Boutons « Modifier » et « Supprimer » dans la colonne Actions de `/members` (administrateur uniquement).
+- Modification du nom, téléphone et localité sans changer l'identifiant du membre.
+- Suppression confirmée par le mot de passe actuel de l'administrateur, contrôlé côté Worker.
+- Si le membre a des écritures, désactivation (`active=0`) sans suppression des historiques ; sinon suppression définitive.
+- Opérations tracées dans D1. Aucune migration SQL nouvelle.

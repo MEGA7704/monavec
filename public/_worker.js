@@ -92,6 +92,26 @@ if(section==='user_create'){need(admin,'Administrateur requis');let role=data.ro
 if(section==='user_status'||section==='user_reset'||section==='user_delete'){need(admin,'Administrateur requis');let target=await db.prepare('SELECT * FROM users WHERE id=?').bind(data.id).first();need(target&&target.role!=='superadmin'&&(sa?['admin','agent','member'].includes(target.role):target.org_id===u.org_id&&['agent','member'].includes(target.role)),'Utilisateur hors périmètre');if(section==='user_status'){need([0,1].includes(data.active),'État invalide');await db.prepare('UPDATE users SET active=? WHERE id=?').bind(data.active,target.id).run();await invalidateUser(db,target.id);}else if(section==='user_reset'){need(validatePassword(data.password),'Nouveau mot de passe : 12 caractères minimum');let salt=random(),h=await hashPassword(data.password,salt);await db.prepare('UPDATE users SET password_hash=?,password_salt=? WHERE id=?').bind(h,salt,target.id).run();await invalidateUser(db,target.id);if(data.request_id)await db.prepare("UPDATE reset_requests SET status='handled',handled_at=? WHERE id=? AND user_id=?").bind(t,data.request_id,target.id).run();}else{await db.prepare('UPDATE users SET active=0 WHERE id=?').bind(target.id).run();await invalidateUser(db,target.id);}await audit(db,u,section,target.id);return j({ok:true});}
 need(!!u.org_id,'Association manquante');if(u.plan_expires_at<=t)return fail('Abonnement expiré : contactez le Super Administrateur',403);
 let oid=u.org_id,cid=data.cycle_id;
+if(section==='member_update'){
+ need(u.role==='admin','Seul l’administrateur peut modifier un membre');
+ const member=await db.prepare('SELECT id FROM members WHERE id=? AND org_id=?').bind(data.id,oid).first();need(member,'Membre introuvable');
+ need(goodName(data.name),'Nom et prénoms obligatoires');
+ await db.prepare('UPDATE members SET name=?,phone=?,locality=? WHERE id=? AND org_id=?').bind(String(data.name).trim(),String(data.phone||'').slice(0,30),String(data.locality||'').slice(0,100),data.id,oid).run();
+ await audit(db,u,'member_updated',data.id);return j({ok:true});
+}
+if(section==='member_delete'){
+ need(u.role==='admin','Seul l’administrateur peut supprimer un membre');
+ need(data.confirm===true,'Confirmation obligatoire');
+ const member=await db.prepare('SELECT id,name,active FROM members WHERE id=? AND org_id=?').bind(data.id,oid).first();need(member,'Membre introuvable');
+ const account=await db.prepare('SELECT password_hash,password_salt FROM users WHERE id=?').bind(u.id).first();
+ need(account&&typeof data.password==='string'&&equal(await hashPassword(data.password,account.password_salt),account.password_hash),'Mot de passe incorrect');
+ const references=[['savings','member_id'],['loans','member_id'],['meeting_attendance','member_id'],['solidarity','member_id'],['distribution_items','member_id']];
+ let hasRecords=false;
+ for(const [table,col] of references){let row=await db.prepare(`SELECT 1 AS found FROM ${table} WHERE ${col}=? LIMIT 1`).bind(data.id).first();if(row){hasRecords=true;break;}}
+ // Conservons les historiques financiers et l’identité du membre lorsque des écritures existent.
+ if(hasRecords){await db.batch([db.prepare('UPDATE members SET active=0 WHERE id=? AND org_id=?').bind(data.id,oid),db.prepare('INSERT INTO audit_logs(id,org_id,user_id,action,target,details,created_at) VALUES(?,?,?,?,?,?,?)').bind(id(),oid,u.id,'member_archived',data.id,member.name,t)]);return j({ok:true,archived:true});}
+ await db.batch([db.prepare('DELETE FROM members WHERE id=? AND org_id=?').bind(data.id,oid),db.prepare('INSERT INTO audit_logs(id,org_id,user_id,action,target,details,created_at) VALUES(?,?,?,?,?,?,?)').bind(id(),oid,u.id,'member_deleted',data.id,member.name,t)]);return j({ok:true,archived:false});
+}
 if(section==='member'){need(goodName(data.name),'Nom du membre obligatoire');let mid=id(),code='AVC-'+new Date().getUTCFullYear().toString().slice(2)+'-'+mid.replace(/-/g,'').slice(0,8).toUpperCase();await db.prepare('INSERT INTO members(id,org_id,code,name,phone,locality,created_at) VALUES(?,?,?,?,?,?,?)').bind(mid,oid,code,data.name.trim(),String(data.phone||'').slice(0,30),String(data.locality||'').slice(0,100),t).run();await audit(db,u,'member_created',mid);return j({ok:true,id:mid});}
 if(section==='cycle'){need(admin,'Administrateur requis');let months=Number(data.duration_months),frequency=Number(data.frequency_days),weekday=Number(data.weekday),start=String(data.start_date||''),date=utcDate(start),fine=money(data.absence_fine);need(goodName(data.name)&&money(data.share_value)>0&&[9,12].includes(months)&&[7,14].includes(frequency)&&Number.isInteger(weekday)&&weekday>=0&&weekday<=6&&date&&fine>=0,'Paramètres du cycle invalides');let exists=await db.prepare("SELECT id FROM cycles WHERE org_id=? AND status='active'").bind(oid).first();need(!exists,'Clôturez le cycle actif avant d’en créer un autre');let cid=id(),endDate=endOfCycle(start,months);try{await db.prepare('INSERT INTO cycles(id,org_id,name,share_value,start_at,duration_months,end_date,frequency_days,weekday,absence_fine) VALUES(?,?,?,?,?,?,?,?,?,?)').bind(cid,oid,data.name.trim(),money(data.share_value),date.getTime(),months,endDate,frequency,weekday,fine).run();}catch(e){if(String(e).includes('UNIQUE'))throw Error('Un cycle actif existe déjà');throw e;}await audit(db,u,'cycle_created',cid);return j({ok:true,id:cid,end_date:endDate});}
 if(section==='cycle_update'){
@@ -106,6 +126,39 @@ if(section==='cycle_update'){
  }
  const updated=await db.prepare("UPDATE cycles SET name=?,share_value=?,start_at=?,duration_months=?,end_date=?,frequency_days=?,weekday=?,absence_fine=? WHERE id=? AND org_id=? AND status='active'").bind(data.name.trim(),part,date.getTime(),months,endOfCycle(start,months),frequency,weekday,fine,cid,oid).run();
  need(updated.meta.changes===1,'Cycle non modifiable');await audit(db,u,'cycle_updated',cid);return j({ok:true});
+}
+if(section==='cycle_delete'){
+ need(u.role==='admin'&&!sa,'Seul l’administrateur de cette AVEC peut supprimer un cycle');
+ need(typeof cid==='string'&&cid.length>0,'Cycle manquant');
+ const cycle=await db.prepare('SELECT id,name,status FROM cycles WHERE id=? AND org_id=?').bind(cid,oid).first();
+ need(cycle,'Cycle introuvable dans votre AVEC');
+ need(data.confirm_name===cycle.name,'Le nom de confirmation ne correspond pas au cycle');
+ need(data.confirm_delete===true,'Confirmez la suppression définitive');
+ const account=await db.prepare('SELECT password_hash,password_salt FROM users WHERE id=? AND org_id=? AND role=\'admin\' AND active=1').bind(u.id,oid).first();
+ need(account&&typeof data.password==='string'&&equal(await hashPassword(data.password,account.password_salt),account.password_hash),'Mot de passe administrateur incorrect');
+ // All statements execute atomically in D1.batch. No other association can be affected.
+ const wh='org_id=? AND cycle_id=?';
+ const tables=['meeting_attendance','repayments','distribution_items','distributions','savings','loans','solidarity','expenses','meetings'];
+ const counts={};
+ for(const table of tables){
+  let sql=table==='repayments'?'SELECT COUNT(*) AS n FROM repayments WHERE org_id=? AND loan_id IN (SELECT id FROM loans WHERE org_id=? AND cycle_id=?)':table==='distribution_items'?'SELECT COUNT(*) AS n FROM distribution_items WHERE distribution_id IN (SELECT id FROM distributions WHERE org_id=? AND cycle_id=?)':`SELECT COUNT(*) AS n FROM ${table} WHERE ${wh}`;
+  let r=await db.prepare(sql).bind(oid,cid).first();counts[table]=r.n;
+ }
+ const statements=[
+  db.prepare('DELETE FROM meeting_attendance WHERE org_id=? AND cycle_id=?').bind(oid,cid),
+  db.prepare('DELETE FROM repayments WHERE org_id=? AND loan_id IN (SELECT id FROM loans WHERE org_id=? AND cycle_id=?)').bind(oid,oid,cid),
+  db.prepare('DELETE FROM distribution_items WHERE distribution_id IN (SELECT id FROM distributions WHERE org_id=? AND cycle_id=?)').bind(oid,cid),
+  db.prepare('DELETE FROM distributions WHERE org_id=? AND cycle_id=?').bind(oid,cid),
+  db.prepare('DELETE FROM savings WHERE org_id=? AND cycle_id=?').bind(oid,cid),
+  db.prepare('DELETE FROM loans WHERE org_id=? AND cycle_id=?').bind(oid,cid),
+  db.prepare('DELETE FROM solidarity WHERE org_id=? AND cycle_id=?').bind(oid,cid),
+  db.prepare('DELETE FROM expenses WHERE org_id=? AND cycle_id=?').bind(oid,cid),
+  db.prepare('DELETE FROM meetings WHERE org_id=? AND cycle_id=?').bind(oid,cid),
+  db.prepare('DELETE FROM cycles WHERE id=? AND org_id=?').bind(cid,oid),
+  db.prepare('INSERT INTO audit_logs(id,org_id,user_id,action,target,details,created_at) VALUES(?,?,?,?,?,?,?)').bind(id(),oid,u.id,'cycle_deleted',cid,JSON.stringify({name:cycle.name,status:cycle.status,deleted_records:counts}),t)
+ ];
+ await db.batch(statements);
+ return j({ok:true,message:'Cycle et mouvements liés supprimés',deleted_records:counts});
 }
 if(section==='cycle_close'){need(admin&&u.role==='admin','Seul l’administrateur de l’AVEC peut clôturer');let cy=await activeCycle(db,oid,cid);need(cy,'Cycle déjà clôturé ou introuvable');let account=await db.prepare('SELECT password_hash,password_salt FROM users WHERE id=?').bind(u.id).first();need(typeof data.password==='string'&&equal(await hashPassword(data.password,account.password_salt),account.password_hash),'Mot de passe administrateur incorrect');let debt=await db.prepare('SELECT COALESCE(SUM(l.principal+l.interest_total),0) AS total FROM loans l WHERE l.org_id=? AND l.cycle_id=?').bind(oid,cid).first();let rep=await db.prepare('SELECT COALESCE(SUM(r.amount),0) AS total FROM repayments r JOIN loans l ON l.id=r.loan_id WHERE l.org_id=? AND l.cycle_id=?').bind(oid,cid).first();need(debt.total===rep.total,'Clôture impossible : des crédits restent à rembourser');let upd=await db.prepare("UPDATE cycles SET status='closed',closed_at=? WHERE id=? AND org_id=? AND status='active'").bind(t,cid,oid).run();need(upd.meta.changes===1,'Cycle non clôturable');await audit(db,u,'cycle_closed',cid);return j({ok:true});}
 if(section==='attendance'){let cy=await activeCycle(db,oid,cid);need(cy&&dateAllowed(cy,data.meeting_date),'Cycle clôturé ou date invalide');let m=await validateScope(db,'members',data.member_id,oid);need(m&&m.active,'Membre introuvable');let present=Number(data.present),paid=Number(data.fine_paid);need([0,1].includes(present)&&[0,1].includes(paid),'Présence/paiement invalide');let fine=present?0:cy.absence_fine;need(!present||paid===0,'Aucune amende pour un membre présent');await db.prepare('INSERT INTO meeting_attendance(id,org_id,cycle_id,meeting_date,member_id,present,fine_amount,fine_paid,created_at) VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(cycle_id,meeting_date,member_id) DO UPDATE SET present=excluded.present,fine_amount=excluded.fine_amount,fine_paid=excluded.fine_paid').bind(id(),oid,cid,data.meeting_date,m.id,present,fine,present?0:paid,t).run();await audit(db,u,'attendance_saved',m.id,`${data.meeting_date}: ${present?'présent':'absent'} / ${paid?'payé':'impayé'}`);return j({ok:true});}
