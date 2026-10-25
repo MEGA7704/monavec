@@ -137,3 +137,17 @@ button.meeting-unpaid:hover:not(:disabled){background:#991b1b!important;}
 .loan-report-dialog #printLoan{width:auto;display:block;margin:16px 0 0 auto}
 @media(max-width:900px){.loan-editor .loan-field-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){#modal .modal.loan-dialog{padding:14px;width:98vw;max-width:98vw;max-height:96dvh}.loan-editor .loan-identifiers,.loan-editor .loan-field-grid{grid-template-columns:1fr}.loan-actionbar{flex-direction:column;align-items:stretch}.loan-actionbar .primary{width:100%}.loan-report-table table{font-size:10px}.loan-report-table td,.loan-report-table th{padding:6px 3px}.loan-report-header h3{font-size:18px}}
+/* Remboursements : colonnes proportionnées et actions regroupées dans Statut */
+.repay-list .table-wrap{overflow-x:auto}
+.repay-list table{width:100%;table-layout:fixed;min-width:0;white-space:normal}
+.repay-list th,.repay-list td{padding:11px 8px;overflow-wrap:anywhere;vertical-align:middle;text-align:left}
+.repay-list th:first-child{width:17%}
+.repay-list th:nth-child(2),.repay-list th:nth-child(3),.repay-list th:nth-child(4){width:11%}
+.repay-list th:nth-child(5){width:13%}
+.repay-list th:nth-child(6){width:10%}
+.repay-list th:nth-child(7){width:11%}
+.repay-list th:last-child{width:16%}
+.repay-actions{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.repay-actions .secondary{padding:6px 8px;font-size:11px}
+.repay-actions .pill{padding:5px 8px;white-space:normal}
+@media(max-width:850px){.repay-list table,.repay-list tbody,.repay-list tr,.repay-list td{display:block;width:100%!important}.repay-list thead{display:none}.repay-list tr{border:1px solid #dce9e2;border-radius:12px;padding:10px;margin:9px 0}.repay-list td{display:grid;grid-template-columns:40% 1fr;gap:8px;align-items:center;border:0}.repay-list td::before{content:attr(data-label);font-weight:700;color:#47675e}.repay-list .repay-actions{justify-content:flex-start}}

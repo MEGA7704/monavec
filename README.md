@@ -197,3 +197,9 @@ comptabilité bancaire certifié.
 
 ## Correctif remboursement le jour du décaissement (2026-10-25)
 Le remboursement est autorisé dès la date civile du décaissement (y compris le même jour). La protection contre les remboursements rétroactifs ne s'applique qu'après comptabilisation de pénalités (`penalty_accrued > 0` et `penalty_last_at` renseigné), jamais du seul fait qu'une échéance future existe. Les intérêts restent ceux prévus au contrat. Un règlement intégral marque le prêt `paid` (affiché Soldé). Aucune migration D1.
+
+## Tableau des remboursements – version réorganisée
+
+Les colonnes sont désormais : Membre, Capital accordé, Intérêt, Pénalité, Remboursement du jour, Date du jour, Reste à payer et Statut. La colonne Statut regroupe les boutons Modifier, Reçu et Supprimer. L'impression du reçu utilise la fonction d'impression du navigateur (destination PDF possible).
+
+Par sécurité, la correction du montant et la suppression ne sont autorisées que sur le dernier remboursement d'un crédit actif appartenant à l'association, sans pénalité déjà comptabilisée ; un mot de passe administrateur est exigé. Les règlements antérieurs et les dossiers avec pénalités doivent être régularisés par une procédure comptable contrôlée. Aucun changement de schéma D1 n'est requis si la migration 0003 est déjà appliquée.
