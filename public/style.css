@@ -103,7 +103,6 @@ button.meeting-unpaid:hover:not(:disabled){background:#991b1b!important;}
 /* Présentation en bas à gauche, inspirée de la référence fournie. */
 .login-pg-main{gap:24px;justify-content:space-between;align-items:stretch}
 .login-pg-presentation{align-self:flex-end;position:relative;max-width:min(760px,58vw);width:100%;color:#fff;padding:24px 16px 22px 2px;text-shadow:0 2px 9px rgba(0,34,25,.68);isolation:isolate}
-.login-pg-presentation::before{content:"";position:absolute;z-index:-1;inset:-24px -15px -18px -28px;background:linear-gradient(90deg,rgba(0,58,44,.91),rgba(0,70,51,.72) 70%,rgba(0,70,51,0));border-radius:18px;filter:blur(9px)}
 .login-pg-presentation h2{font-size:clamp(28px,3.2vw,48px);line-height:1.03;color:#fff;margin:0 0 14px;font-weight:850;letter-spacing:-.025em}
 .login-pg-presentation h2 em{font-style:normal;color:#efc45b}
 .login-pg-presentation-description{font-size:clamp(12px,1.2vw,17px);line-height:1.48;margin:0 0 23px;max-width:700px}
