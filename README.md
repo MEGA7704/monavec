@@ -193,3 +193,7 @@ réglementation des taux/pénalités, l'échéancier détaillé par période, le
 l'utilisateur pour les mises à jour, la concurrence entre deux remboursements et
 les écritures comptables; ne pas considérer cette version comme un système de
 comptabilité bancaire certifié.
+
+
+## Correctif remboursement le jour du décaissement (2026-10-25)
+Le remboursement est autorisé dès la date civile du décaissement (y compris le même jour). La protection contre les remboursements rétroactifs ne s'applique qu'après comptabilisation de pénalités (`penalty_accrued > 0` et `penalty_last_at` renseigné), jamais du seul fait qu'une échéance future existe. Les intérêts restent ceux prévus au contrat. Un règlement intégral marque le prêt `paid` (affiché Soldé). Aucune migration D1.
