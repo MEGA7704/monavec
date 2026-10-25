@@ -131,3 +131,17 @@ La requête de décompte des remboursements utilise maintenant trois paramètres
 La section `/reports` regroupe les réunions (présences et absences), les amendes payées et impayées, les parts et épargnes, les crédits, remboursements, restes à rembourser, solidarité versée, aides reçues et solde estimé. Choisir un cycle ou tous les cycles ; export CSV et impression. Le calcul se fait dans D1 par regroupements SQL, sans télécharger tous les mouvements. La table `meeting_attendance` créée par la migration `0002_cycles_reunions.sql` est nécessaire. Aucun changement de schéma complémentaire pour ce rapport.
 
 Le solde estimé est une position indicative : épargne moins capital restant, intérêts restant et amendes impayées. Ce n'est pas le solde de caisse ni le montant du partage, et il ne tient pas compte des pertes éventuelles ou des décisions de compensation. Les contributions et aides de solidarité restent distinctes.
+
+## Fusion Réunions et Épargnes (2026-10-25)
+
+- Une seule entrée de navigation « Réunions et épargnes » accessible à `/meetings`.
+- L'ancienne adresse `/savings` ouvre la page fusionnée avec URL canonique `/meetings`.
+- Chaque date ouvre une fenêtre combinant présence, amende, paiement de l'amende, nombre de parts et montant calculé.
+- Boutons distincts « Présence » et « Parts » pour enregistrer chaque mouvement selon les API historiques (les écritures restent indépendantes).
+- Dates futures verrouillées; cycle clôturé en lecture seule.
+- Aucun changement de schéma D1; les rapports historiques continuent de lire les données existantes.
+- La saisie des parts devient impossible après le premier enregistrement pour ce membre et cette date, selon la règle actuelle.
+
+
+## Marquage rouge des dettes non réglées
+Les amendes d'absence impayées apparaissent en rouge dans la fenêtre Réunion et épargne, y compris dès que l'administrateur change les champs de présence ou de paiement. Le rapport global indique en rouge les amendes impayées, les restes à rembourser positifs et les soldes négatifs. Les crédits déjà accordés et les cotisations normales ne sont pas présentés comme des dettes impayées. Le rouge est un indicateur d'affichage ; aucune donnée financière n'est modifiée par ce changement.

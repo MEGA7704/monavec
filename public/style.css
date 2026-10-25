@@ -22,3 +22,19 @@ html,body,#app{width:100%;min-width:0}main{max-width:none!important;width:100%;m
 
 /* Rapport consolidé des membres */
 .report-actions{display:flex;align-items:end;gap:10px;flex-wrap:wrap}.report-actions label{min-width:220px;margin:0}.report-table table{white-space:normal;min-width:1250px}.report-table th{position:sticky;top:0}.report-total{background:#e1f3e9;font-weight:800}.report-legend{font-size:12px;margin-top:12px}@media print{#nav,.top,.report-actions,footer{display:none!important}.report-table{overflow:visible}.report-table table{font-size:9px;min-width:0}main{padding:0!important}}
+
+/* Tableau combiné, pleine largeur et sans défilement horizontal */
+#modal .modal.wide-detail{width:min(98vw,1600px);max-width:98vw}
+#modal .date-detail table{width:100%;table-layout:fixed}
+#modal .date-detail th,#modal .date-detail td{overflow-wrap:anywhere;padding:8px 5px}
+#modal .date-detail th:first-child{width:20%}
+#modal .date-detail select,#modal .date-detail input{width:100%;min-width:0;max-width:100%;box-sizing:border-box}
+#modal .merged-actions{display:flex;gap:4px;flex-wrap:wrap}
+#modal .merged-actions button{flex:1;min-width:58px;padding:7px 4px}
+@media(max-width:850px){#modal .date-detail table,#modal .date-detail tbody,#modal .date-detail tr,#modal .date-detail td{display:block;width:100%}#modal .date-detail thead{display:none}#modal .date-detail tr{padding:12px;margin:8px 0;border:1px solid #ddd;border-radius:10px}#modal .date-detail td{display:grid;grid-template-columns:minmax(115px,40%) minmax(0,60%);align-items:center;gap:8px}#modal .date-detail td::before{content:attr(data-label);font-weight:600}#modal .date-detail td[data-label="Actions"]::before{content:"Actions"}}
+
+/* Signalisation des dettes non réglées : texte rouge lisible et identifiable */
+.debt-due{color:#b91c1c!important;font-weight:800!important;}
+.wide-detail td.debt-due select{border-color:#dc2626;color:#b91c1c;font-weight:750;background:#fff5f5;}
+.report-table .debt-due{white-space:normal;}
+@media print{.debt-due{color:#9f1239!important;text-decoration:underline;}}
