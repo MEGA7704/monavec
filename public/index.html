@@ -1,4 +1,88 @@
-<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#064e3b"><title>AVEC Manager Pro</title><link rel="stylesheet" href="/style.css"><link rel="manifest" href="/manifest.webmanifest"></head><body>
-<div id="login" class="login-wrap"><div class="login-card"><div class="brand-icon">✦</div><h1>AVEC Manager Pro</h1><p class="sub">Gestion des associations villageoises d'épargne et de crédit</p><form id="loginForm"><label>Adresse e-mail<input id="email" type="email" autocomplete="username" required placeholder="votre@email.ci"></label><label>Mot de passe<div class="password-wrap"><input id="password" type="password" autocomplete="current-password" required placeholder="Votre mot de passe"><button type="button" class="eye" data-eye="password" aria-label="Afficher le mot de passe">◉</button></div></label><button class="primary full">Se connecter</button></form><button type="button" class="secondary full" id="register">＋ Créer mon AVEC et mon compte administrateur</button><button class="link" id="forgot">Mot de passe oublié ?</button><p class="tiny">Accès personnel sécurisé · D1 / Cloudflare</p></div></div>
-<div id="app" hidden><header class="top"><div class="logo">✦ <strong>AVEC MANAGER</strong> <span>PRO</span></div><div class="right"><span id="who"></span><button id="logout" class="soft">Déconnexion ↗</button></div></header><nav id="nav"></nav><main><div class="head"><div><h2 id="heading">Tableau de bord</h2><p id="subtitle">Gestion centralisée de votre association</p></div><span id="planBadge" class="pill"></span></div><div id="view"></div></main><footer>© 2026 AVEC Manager Pro · Gestion sécurisée</footer></div>
-<div id="modal" class="backdrop" hidden><div class="modal"><button class="close" id="closeModal" aria-label="Fermer">×</button><h2 id="modalTitle"></h2><div id="modalBody"></div></div></div><div id="toast" role="status"></div><script src="/app.js" defer></script></body></html>
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#064e3b">
+  <title>AVEC Manager Pro</title>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="manifest" href="/manifest.webmanifest">
+</head>
+<body>
+<div id="login" class="login-screen">
+  <div class="login-shell">
+    <section class="login-visual">
+      <div class="gold-line gold-line-top"></div>
+      <div class="gold-line gold-line-bottom"></div>
+      <div class="login-brand">
+        <div class="login-brand-mark">AVEC</div>
+        <div class="login-brand-sub">MANAGER PRO</div>
+      </div>
+      <div class="login-visual-photo-wrap">
+        <img src="/login-hero.png" alt="Responsable AVEC entourée des membres de l'association" class="login-visual-photo">
+        <div class="login-visual-overlay"></div>
+      </div>
+      <div class="login-visual-content">
+        <span class="login-kicker">Plateforme de gestion AVEC</span>
+        <h1>Ensemble pour une gestion solidaire, claire et moderne</h1>
+        <p>Une solution professionnelle pour piloter les réunions, l’épargne, les crédits, les rapports et la vie de votre association villageoise d’épargne et de crédit.</p>
+        <div class="login-highlights">
+          <span>Solidarité</span>
+          <span>Épargne</span>
+          <span>Crédit</span>
+          <span>Progrès</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="login-panel-wrap">
+      <div class="panel-gold arc arc-1"></div>
+      <div class="panel-gold arc arc-2"></div>
+      <div class="login-panel">
+        <div class="login-panel-header">
+          <div class="panel-logo-ring">◎</div>
+          <h2>Connexion à votre espace AVEC</h2>
+          <p>Accédez à votre compte pour gérer votre AVEC en toute simplicité.</p>
+        </div>
+
+        <form id="loginForm" class="login-form">
+          <label>Adresse e-mail
+            <input id="email" type="email" autocomplete="username" required placeholder="votre@email.ci">
+          </label>
+
+          <label>Mot de passe
+            <div class="password-wrap">
+              <input id="password" type="password" autocomplete="current-password" required placeholder="Votre mot de passe">
+              <button type="button" class="eye" data-eye="password" aria-label="Afficher le mot de passe">◉</button>
+            </div>
+          </label>
+
+          <div class="login-meta-row">
+            <label class="remember-row"><input type="checkbox"> <span>Se souvenir de moi</span></label>
+            <button class="link inline-link" id="forgot" type="button">Mot de passe oublié ?</button>
+          </div>
+
+          <button class="primary full login-submit">Se connecter</button>
+        </form>
+
+        <div class="separator"><span>ou</span></div>
+
+        <button type="button" class="secondary full create-account-btn" id="register">Créer mon AVEC</button>
+
+        <p class="tiny login-note">Une initiative pour la solidarité et le développement local.</p>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div id="app" hidden>
+  <header class="top"><div class="logo">✦ <strong>AVEC MANAGER</strong> <span>PRO</span></div><div class="right"><span id="who"></span><button id="logout" class="soft">Déconnexion ↗</button></div></header>
+  <nav id="nav"></nav>
+  <main><div class="head"><div><h2 id="heading">Tableau de bord</h2><p id="subtitle">Gestion centralisée de votre association</p></div><span id="planBadge" class="pill"></span></div><div id="view"></div></main>
+  <footer>© 2026 AVEC Manager Pro · Gestion sécurisée</footer>
+</div>
+<div id="modal" class="backdrop" hidden><div class="modal"><button class="close" id="closeModal" aria-label="Fermer">×</button><h2 id="modalTitle"></h2><div id="modalBody"></div></div></div>
+<div id="toast" role="status"></div>
+<script src="/app.js" defer></script>
+</body>
+</html>
