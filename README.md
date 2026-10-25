@@ -118,3 +118,16 @@ Dans Cycles > Statut, l'administrateur dispose du bouton « Supprimer » sur les
 
 ## Correctif SQL — suppression des cycles
 La requête de décompte des remboursements utilise maintenant trois paramètres liés (`org_id` externe, `org_id` de la sous-requête, `cycle_id`), contre deux auparavant. Ce correctif évite l'erreur D1 `Wrong number of parameter bindings for SQL query` lors de la suppression d'un cycle contenant ou non des remboursements. Aucune migration D1 n'est nécessaire et aucune donnée n'est effacée par le déploiement.
+
+
+## Nouvelle correction — calendriers et fenêtres responsive
+- Les dates futures sont verrouillées dans les calendriers de réunions et d'épargne, ainsi que côté serveur sur les écritures. La date courante est évaluée en UTC, identique à Africa/Abidjan.
+- Fenêtres élargies sur ordinateur, tableau converti en fiches verticales sur mobile, sans défilement horizontal.
+- Cotisations saisies en nombre entier de parts ; calcul automatique et sécurisé de montant = parts × valeur de la part du cycle.
+- Aucune nouvelle migration SQL nécessaire.
+
+## Rapport global par membre
+
+La section `/reports` regroupe les réunions (présences et absences), les amendes payées et impayées, les parts et épargnes, les crédits, remboursements, restes à rembourser, solidarité versée, aides reçues et solde estimé. Choisir un cycle ou tous les cycles ; export CSV et impression. Le calcul se fait dans D1 par regroupements SQL, sans télécharger tous les mouvements. La table `meeting_attendance` créée par la migration `0002_cycles_reunions.sql` est nécessaire. Aucun changement de schéma complémentaire pour ce rapport.
+
+Le solde estimé est une position indicative : épargne moins capital restant, intérêts restant et amendes impayées. Ce n'est pas le solde de caisse ni le montant du partage, et il ne tient pas compte des pertes éventuelles ou des décisions de compensation. Les contributions et aides de solidarité restent distinctes.
