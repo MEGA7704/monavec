@@ -160,3 +160,36 @@ La fenêtre contient six colonnes et un bouton unique « Enregistrer ». Le serv
 
 ## Page de connexion avec PG.jpg (mise à jour)
 La page de connexion utilise maintenant `public/PG.jpg` comme arrière-plan pleine page. Le formulaire est placé à droite sur ordinateur et est adapté aux écrans mobiles. Le pied de page présente les informations légales de MEGA SERVICES SARL U. Les identifiants des formulaires et les appels serveur sont conservés, ainsi que le dépôt D1/KV. Aucune nouvelle migration SQL n'est requise pour cette modification esthétique.
+
+## Mise à jour Crédits et remboursements (2026-10-25)
+
+Avant le déploiement de cette version, appliquer **une seule fois** la migration
+`migrations/0003_credits_echeances.sql` dans la console D1 `avec_d1`.
+Sauvegarder D1 avant toute migration. Les anciens prêts reçoivent un mode mensuel et
+une pénalité à 0 % par défaut ; leurs échéances et montants d'origine sont préservés.
+
+Le formulaire de crédit recueille la date de décaissement, le rythme indicatif de
+remboursement (par semaine ou par mois) et les paramètres de pénalité (par jour ou
+par mois). Le montant périodique est une **simulation indicative** d'un partage égal
+du capital et de l'intérêt forfaitaire entre les périodes ; le calcul des pénalités
+porte actuellement sur le total restant dû **après l'échéance finale du prêt**,
+pas sur chaque échéance intermédiaire. La dernière mensualité ou semaine doit être
+ajustée selon les arrondis. Aucun échéancier individuel n'est contractuellement
+imposé ou enregistré dans cette version.
+
+Les pénalités sont calculées sur le solde impayé (capital et intérêts) pour chaque
+période entière écoulée depuis l'échéance finale ou le dernier calcul validé. Leur
+montant se rajoute au solde et est imputé avant les intérêts puis le capital lors
+du remboursement. Seules les pénalités **encaissées** entrent dans le résultat du
+partage. Pour préserver la cohérence historique, cette version refuse d'enregistrer
+un règlement à une date antérieure au dernier calcul de pénalité.
+
+La modification et la suppression des crédits exigent qu'aucun remboursement
+n'existe sur le prêt ; la suppression demande le mot de passe administrateur et
+laisse une trace d'audit. Les cycles clôturés restent non modifiables.
+
+Limitations avant utilisation sur fonds réels : valider en environnement de test la
+réglementation des taux/pénalités, l'échéancier détaillé par période, les droits de
+l'utilisateur pour les mises à jour, la concurrence entre deux remboursements et
+les écritures comptables; ne pas considérer cette version comme un système de
+comptabilité bancaire certifié.
