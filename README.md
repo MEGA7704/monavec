@@ -114,3 +114,7 @@ Dans Cycles > Statut, l'administrateur dispose du bouton « Supprimer » sur les
 - Suppression confirmée par le mot de passe actuel de l'administrateur, contrôlé côté Worker.
 - Si le membre a des écritures, désactivation (`active=0`) sans suppression des historiques ; sinon suppression définitive.
 - Opérations tracées dans D1. Aucune migration SQL nouvelle.
+
+
+## Correctif SQL — suppression des cycles
+La requête de décompte des remboursements utilise maintenant trois paramètres liés (`org_id` externe, `org_id` de la sous-requête, `cycle_id`), contre deux auparavant. Ce correctif évite l'erreur D1 `Wrong number of parameter bindings for SQL query` lors de la suppression d'un cycle contenant ou non des remboursements. Aucune migration D1 n'est nécessaire et aucune donnée n'est effacée par le déploiement.

@@ -142,7 +142,8 @@ if(section==='cycle_delete'){
  const counts={};
  for(const table of tables){
   let sql=table==='repayments'?'SELECT COUNT(*) AS n FROM repayments WHERE org_id=? AND loan_id IN (SELECT id FROM loans WHERE org_id=? AND cycle_id=?)':table==='distribution_items'?'SELECT COUNT(*) AS n FROM distribution_items WHERE distribution_id IN (SELECT id FROM distributions WHERE org_id=? AND cycle_id=?)':`SELECT COUNT(*) AS n FROM ${table} WHERE ${wh}`;
-  let r=await db.prepare(sql).bind(oid,cid).first();counts[table]=r.n;
+  let params=table==='repayments'?[oid,oid,cid]:[oid,cid];
+  let r=await db.prepare(sql).bind(...params).first();counts[table]=r.n;
  }
  const statements=[
   db.prepare('DELETE FROM meeting_attendance WHERE org_id=? AND cycle_id=?').bind(oid,cid),
