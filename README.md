@@ -145,3 +145,7 @@ Le solde estimé est une position indicative : épargne moins capital restant, i
 
 ## Marquage rouge des dettes non réglées
 Les amendes d'absence impayées apparaissent en rouge dans la fenêtre Réunion et épargne, y compris dès que l'administrateur change les champs de présence ou de paiement. Le rapport global indique en rouge les amendes impayées, les restes à rembourser positifs et les soldes négatifs. Les crédits déjà accordés et les cotisations normales ne sont pas présentés comme des dettes impayées. Le rouge est un indicateur d'affichage ; aucune donnée financière n'est modifiée par ce changement.
+
+
+## Enregistrement groupé « Réunion et épargne »
+La fenêtre contient six colonnes et un bouton unique « Enregistrer ». Le serveur valide toutes les lignes puis les enregistre dans une transaction `D1.batch`. Les anciennes cotisations restent verrouillées et ne sont pas écrasées. Les lignes sans saisie sont ignorées. Les dates futures et cycles clôturés restent protégés côté serveur. Aucune migration SQL supplémentaire.

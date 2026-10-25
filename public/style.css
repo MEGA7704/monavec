@@ -38,3 +38,15 @@ html,body,#app{width:100%;min-width:0}main{max-width:none!important;width:100%;m
 .wide-detail td.debt-due select{border-color:#dc2626;color:#b91c1c;font-weight:750;background:#fff5f5;}
 .report-table .debt-due{white-space:normal;}
 @media print{.debt-due{color:#9f1239!important;text-decoration:underline;}}
+
+/* Saisie groupée en réunion : six colonnes sans actions individuelles */
+#modal .date-detail th:first-child{width:24%}
+#modal .date-detail th:nth-child(2){width:15%}
+#modal .date-detail th:nth-child(3){width:14%}
+#modal .date-detail th:nth-child(4){width:16%}
+#modal .date-detail th:nth-child(5){width:15%}
+#modal .date-detail th:nth-child(6){width:16%}
+.global-save-footer{display:flex;align-items:center;justify-content:flex-end;gap:20px;flex-wrap:wrap;border-top:1px solid #e4eeeb;padding:17px 0 0;margin-top:16px}
+.global-save-footer button{min-width:180px}
+.global-save-footer button:disabled{opacity:.55;cursor:wait}
+@media(max-width:850px){.global-save-footer{flex-direction:column;align-items:stretch}.global-save-footer button{width:100%}}
