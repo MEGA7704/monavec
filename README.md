@@ -156,3 +156,7 @@ La fenêtre contient six colonnes et un bouton unique « Enregistrer ». Le serv
 - Après enregistrement groupé réussi, le popup se ferme et le calendrier se rafraîchit. En cas d'échec, il reste ouvert.
 - Les dates dont au moins une amende d'absence demeure impayée affichent le bouton « Gérer la réunion et les parts · Impayés » en rouge. Calcul effectué côté D1 en une seule requête agrégée.
 - Aucune migration nécessaire si `meeting_attendance` existe déjà.
+
+
+## Page de connexion avec PG.jpg (mise à jour)
+La page de connexion utilise maintenant `public/PG.jpg` comme arrière-plan pleine page. Le formulaire est placé à droite sur ordinateur et est adapté aux écrans mobiles. Le pied de page présente les informations légales de MEGA SERVICES SARL U. Les identifiants des formulaires et les appels serveur sont conservés, ainsi que le dépôt D1/KV. Aucune nouvelle migration SQL n'est requise pour cette modification esthétique.
