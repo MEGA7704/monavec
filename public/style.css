@@ -120,3 +120,20 @@ button.meeting-unpaid:hover:not(:disabled){background:#991b1b!important;}
 
 /* Colonnes crédits réparties sur la largeur */
 #view .table-wrap:has([data-loan-report]) table{white-space:normal;table-layout:fixed}#view .table-wrap:has([data-loan-report]) th,#view .table-wrap:has([data-loan-report]) td{overflow-wrap:anywhere;padding:10px 7px}#view [data-loan-report],#view [data-loan-edit],#view [data-loan-delete]{margin:2px;font-size:12px;padding:7px}
+
+/* Fenêtres de crédit professionnelles et fluides */
+#modal .modal.loan-dialog{width:min(1200px,97vw);max-width:97vw;max-height:min(94dvh,1000px);padding:clamp(15px,2.2vw,30px);overflow-x:hidden;overflow-y:auto;border:1px solid #e8dab9;box-shadow:0 26px 80px #00291d44}
+#modal .loan-dialog #modalTitle{font-size:clamp(19px,2.1vw,27px);color:#07513c;border-bottom:2px solid #d9ae4c;padding:0 42px 14px 0;margin-bottom:15px}
+.loan-editor .loan-identifiers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px}
+.loan-editor .loan-field-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));column-gap:16px;row-gap:7px}
+.loan-editor label{min-width:0;margin:6px 0;font-size:13px}
+.loan-editor input,.loan-editor select{min-width:0;width:100%;padding:10px 11px;margin-top:5px}
+.loan-estimate{margin:12px 0!important;padding:11px 15px!important;font-size:13px;line-height:1.45}
+.loan-actionbar{display:flex;align-items:center;justify-content:space-between;gap:15px;padding-top:12px;border-top:1px solid #e4eae5}
+.loan-actionbar span{font-size:12px;color:#66796e}.loan-actionbar .primary{min-width:205px}
+.loan-report{font-size:13px;line-height:1.45}.loan-report-header{display:flex;justify-content:space-between;align-items:center;gap:15px;border-bottom:2px solid #d8af4e;padding-bottom:12px;margin-bottom:14px}
+.loan-report-header small{color:#a17b22;letter-spacing:.08em;font-weight:750;font-size:11px}.loan-report-header h3{margin:5px 0 0;font-size:23px;color:#07513c}.loan-report-mark{font-size:24px;color:#086047;font-weight:850}
+.loan-report h3{color:#07513c;margin:14px 0 9px}.loan-report p{margin:7px 0}.loan-report-table{overflow-x:hidden}.loan-report-table table{table-layout:fixed;white-space:normal;font-size:12px}.loan-report-table td,.loan-report-table th{overflow-wrap:anywhere;padding:9px 8px}
+.loan-report-dialog #printLoan{width:auto;display:block;margin:16px 0 0 auto}
+@media(max-width:900px){.loan-editor .loan-field-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){#modal .modal.loan-dialog{padding:14px;width:98vw;max-width:98vw;max-height:96dvh}.loan-editor .loan-identifiers,.loan-editor .loan-field-grid{grid-template-columns:1fr}.loan-actionbar{flex-direction:column;align-items:stretch}.loan-actionbar .primary{width:100%}.loan-report-table table{font-size:10px}.loan-report-table td,.loan-report-table th{padding:6px 3px}.loan-report-header h3{font-size:18px}}
