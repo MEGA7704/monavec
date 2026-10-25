@@ -50,3 +50,8 @@ html,body,#app{width:100%;min-width:0}main{max-width:none!important;width:100%;m
 .global-save-footer button{min-width:180px}
 .global-save-footer button:disabled{opacity:.55;cursor:wait}
 @media(max-width:850px){.global-save-footer{flex-direction:column;align-items:stretch}.global-save-footer button{width:100%}}
+
+/* Réunions dont une amende reste impayée */
+button.meeting-unpaid:not(:disabled){background:#b91c1c!important;color:#fff!important;border-color:#991b1b!important;font-weight:800!important;}
+button.meeting-unpaid:hover:not(:disabled){background:#991b1b!important;}
+#modal .finepaid:disabled{cursor:not-allowed;background:#f1f5f9;color:#64748b;opacity:1;}

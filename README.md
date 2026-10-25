@@ -149,3 +149,10 @@ Les amendes d'absence impayées apparaissent en rouge dans la fenêtre Réunion 
 
 ## Enregistrement groupé « Réunion et épargne »
 La fenêtre contient six colonnes et un bouton unique « Enregistrer ». Le serveur valide toutes les lignes puis les enregistre dans une transaction `D1.batch`. Les anciennes cotisations restent verrouillées et ne sont pas écrasées. Les lignes sans saisie sont ignorées. Les dates futures et cycles clôturés restent protégés côté serveur. Aucune migration SQL supplémentaire.
+
+
+## Correctifs réunion — octobre 2026
+- Présent : champ Paiement verrouillé et affiché « Présent ». Aucune amende n'est enregistrée.
+- Après enregistrement groupé réussi, le popup se ferme et le calendrier se rafraîchit. En cas d'échec, il reste ouvert.
+- Les dates dont au moins une amende d'absence demeure impayée affichent le bouton « Gérer la réunion et les parts · Impayés » en rouge. Calcul effectué côté D1 en une seule requête agrégée.
+- Aucune migration nécessaire si `meeting_attendance` existe déjà.
