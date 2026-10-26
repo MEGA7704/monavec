@@ -110,11 +110,82 @@ if(section==='meeting_unpaid_dates'){
  return j({ok:true,data:result.results});
 }
 if(section==='meeting_detail'){need((url.searchParams.get('date')||'')<=new Date().toISOString().slice(0,10),'Réunion future verrouillée');need(staff,'Accès réservé au personnel');let cid=url.searchParams.get('cycle_id'),date=url.searchParams.get('date');let cy=await db.prepare('SELECT * FROM cycles WHERE id=? AND org_id=?').bind(cid,u.org_id).first();need(cy&&dateAllowed(cy,date),'Date hors calendrier');let members=(await db.prepare('SELECT id,name,code FROM members WHERE org_id=? AND active=1 ORDER BY name LIMIT 500').bind(u.org_id).all()).results;let attendance=(await db.prepare('SELECT member_id,present,fine_amount,fine_paid FROM meeting_attendance WHERE org_id=? AND cycle_id=? AND meeting_date=?').bind(u.org_id,cid,date).all()).results;let savings=(await db.prepare('SELECT member_id,amount,shares FROM savings WHERE org_id=? AND cycle_id=? AND meeting_id IN (SELECT id FROM meetings WHERE org_id=? AND cycle_id=? AND meeting_date=?)').bind(u.org_id,cid,u.org_id,cid,date).all()).results;return j({ok:true,data:{cycle:cy,members,attendance,savings}});}
+if(section==='solidarity_motifs' || section==='solidarity_contributions' || section==='solidarity_report'){
+ need(staff,'Accès réservé au personnel');const oid=u.org_id;
+ if(section==='solidarity_motifs'){
+  const motifs=(await db.prepare("SELECT x.*,m.name AS beneficiary_name,c.name AS cycle_name FROM solidarity_motifs x LEFT JOIN members m ON m.id=x.beneficiary_id AND m.org_id=x.org_id JOIN cycles c ON c.id=x.cycle_id WHERE x.org_id=? ORDER BY x.created_at DESC LIMIT 250").bind(oid).all()).results;
+  const payments=(await db.prepare('SELECT motif_id,member_id,SUM(amount) AS paid FROM solidarity_contributions WHERE org_id=? GROUP BY motif_id,member_id').bind(oid).all()).results;
+  const members=(await db.prepare('SELECT id,name,active FROM members WHERE org_id=? ORDER BY name LIMIT 500').bind(oid).all()).results;
+  const cycles=(await db.prepare('SELECT id,name,status FROM cycles WHERE org_id=? ORDER BY start_at DESC LIMIT 100').bind(oid).all()).results;
+  return j({ok:true,data:{motifs,payments,members,cycles}});
+ }
+ if(section==='solidarity_contributions'){
+  const result=(await db.prepare('SELECT c.*,m.name AS member_name,x.title AS motif_name,x.contribution,x.status AS motif_status FROM solidarity_contributions c JOIN members m ON m.id=c.member_id AND m.org_id=c.org_id JOIN solidarity_motifs x ON x.id=c.motif_id AND x.org_id=c.org_id WHERE c.org_id=? ORDER BY c.payment_date DESC,c.created_at DESC LIMIT 400').bind(oid).all()).results;
+  return j({ok:true,data:result});
+ }
+ let motif=await db.prepare('SELECT x.*,m.name AS beneficiary_name FROM solidarity_motifs x LEFT JOIN members m ON m.id=x.beneficiary_id WHERE x.id=? AND x.org_id=?').bind(url.searchParams.get('motif_id'),oid).first();need(motif,'Motif introuvable');
+ const contributions=(await db.prepare('SELECT c.*,m.name AS member_name FROM solidarity_contributions c JOIN members m ON m.id=c.member_id WHERE c.motif_id=? AND c.org_id=? ORDER BY c.payment_date,c.created_at').bind(motif.id,oid).all()).results;
+ return j({ok:true,data:{motif,contributions}});
+}
 if(section==='loan_history'){need(staff,'Accès personnel requis');let loan=await validateScope(db,'loans',url.searchParams.get('loan_id'),u.org_id);need(loan,'Crédit introuvable');let payments=(await db.prepare('SELECT amount,principal_amount,interest_amount,penalty_amount,created_at FROM repayments WHERE org_id=? AND loan_id=? ORDER BY created_at').bind(u.org_id,loan.id).all()).results;let situation=loanSituation(loan,await loanPaid(db,loan.id));return j({ok:true,data:{payments,situation}});}
 if(section==='distributions'){return j({ok:true,data:(await db.prepare('SELECT d.*,c.name AS cycle_name FROM distributions d JOIN cycles c ON c.id=d.cycle_id WHERE d.org_id=? ORDER BY d.created_at DESC LIMIT 100').bind(u.org_id).all()).results});}
 const queries={members:'SELECT * FROM members WHERE org_id=? ORDER BY created_at DESC LIMIT 200',cycles:'SELECT * FROM cycles WHERE org_id=? ORDER BY start_at DESC LIMIT 100',meetings:'SELECT * FROM meetings WHERE org_id=? ORDER BY created_at DESC LIMIT 150',savings:'SELECT s.*,m.name AS member_name,c.name AS cycle_name FROM savings s JOIN members m ON m.id=s.member_id JOIN cycles c ON c.id=s.cycle_id WHERE s.org_id=? ORDER BY s.created_at DESC LIMIT 200',loans:'SELECT l.*,m.name AS member_name,(SELECT COALESCE(SUM(r.amount),0) FROM repayments r WHERE r.loan_id=l.id) AS paid,(SELECT COALESCE(SUM(r.principal_amount),0) FROM repayments r WHERE r.loan_id=l.id) AS paid_principal,(SELECT COALESCE(SUM(r.interest_amount),0) FROM repayments r WHERE r.loan_id=l.id) AS paid_interest,(SELECT COALESCE(SUM(r.penalty_amount),0) FROM repayments r WHERE r.loan_id=l.id) AS paid_penalty FROM loans l JOIN members m ON m.id=l.member_id WHERE l.org_id=? ORDER BY l.created_at DESC LIMIT 150',repayments:'SELECT r.*,m.name AS member_name,l.principal AS loan_principal,l.interest_total AS loan_interest,l.penalty_accrued AS loan_penalties,l.status AS loan_status,l.due_at AS loan_due_at,l.disbursed_at AS loan_disbursed_at,l.rate_percent AS loan_rate_percent,(SELECT COALESCE(SUM(r2.principal_amount+r2.interest_amount+r2.penalty_amount),0) FROM repayments r2 WHERE r2.org_id=r.org_id AND r2.loan_id=r.loan_id AND (r2.created_at<r.created_at OR (r2.created_at=r.created_at AND r2.id<=r.id))) AS cumulative_paid FROM repayments r JOIN loans l ON l.id=r.loan_id AND l.org_id=r.org_id JOIN members m ON m.id=l.member_id AND m.org_id=r.org_id WHERE r.org_id=? ORDER BY r.created_at DESC,r.id DESC LIMIT 200',solidarity:'SELECT s.*,m.name AS member_name FROM solidarity s LEFT JOIN members m ON m.id=s.member_id WHERE s.org_id=? ORDER BY s.created_at DESC LIMIT 200',expenses:'SELECT * FROM expenses WHERE org_id=? ORDER BY created_at DESC LIMIT 200',users:"SELECT id,name,email,role,active,created_at FROM users WHERE org_id=? AND role IN ('agent','member') ORDER BY created_at DESC LIMIT 150",audit:'SELECT * FROM audit_logs WHERE org_id=? ORDER BY created_at DESC LIMIT 150'};
 need(queries[section],'Section inconnue');if(['audit','users'].includes(section))need(admin,'Accès administrateur requis');return j({ok:true,data:(await db.prepare(queries[section]).bind(u.org_id).all()).results});}
 if(path==='/api/save'&&post){need(staff,'Accès agent requis');let b=await readBody(req),section=b.section,data=b.data||{},t=now();need(typeof section==='string','Section obligatoire');
+if(section.startsWith('solidarity_')){
+ need(u.role==='admin','Administrateur requis');need(!!u.org_id,'Association requise');const oid=u.org_id;
+ const motifId=String(data.motif_id||data.id||'');
+ let motif=motifId?await db.prepare('SELECT * FROM solidarity_motifs WHERE id=? AND org_id=?').bind(motifId,oid).first():null;
+ const passwordCheck=async()=>{const account=await db.prepare('SELECT password_hash,password_salt FROM users WHERE id=?').bind(u.id).first();need(account&&equal(await hashPassword(String(data.password||''),account.password_salt),account.password_hash),'Mot de passe administrateur incorrect');};
+ const within=(date)=>/^\d{4}-\d{2}-\d{2}$/.test(date)&&!Number.isNaN(Date.parse(date+'T12:00:00Z'));
+ const active=async mid=>{let m=await db.prepare('SELECT x.*,c.status AS cycle_status FROM solidarity_motifs x JOIN cycles c ON c.id=x.cycle_id AND c.org_id=x.org_id WHERE x.id=? AND x.org_id=?').bind(mid,oid).first();need(m&&m.status==='active'&&m.cycle_status==='active','Motif ou cycle clôturé');return m;};
+ if(section==='solidarity_motif_create' || section==='solidarity_motif_update'){
+  if(section==='solidarity_motif_update'){need(motif,'Motif introuvable');await active(motifId);await passwordCheck();}
+  const title=String(data.title||'').trim(),amount=money(data.contribution),destination=data.destination,frequency=data.frequency;
+  need(title.length>=3&&title.length<=180,'Motif obligatoire (3 à 180 caractères)');need(amount>0,'Montant invalide');need(['member','event'].includes(destination),'Destination invalide');need(['weekly','monthly'].includes(frequency),'Fréquence invalide');
+  need(within(data.start_date)&&within(data.end_date)&&data.end_date>=data.start_date,'Dates invalides');
+  if(destination==='member'){let ben=await db.prepare('SELECT id FROM members WHERE id=? AND org_id=? AND active=1').bind(data.beneficiary_id,oid).first();need(ben,'Bénéficiaire invalide');}
+  const ben=destination==='member'?data.beneficiary_id:null;
+  if(section==='solidarity_motif_create'){
+   const cy=await activeCycle(db,oid,data.cycle_id);need(cy,'Cycle actif requis');const newid=id();await db.prepare('INSERT INTO solidarity_motifs(id,org_id,cycle_id,title,contribution,destination,beneficiary_id,frequency,start_date,end_date,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)').bind(newid,oid,cy.id,title,amount,destination,ben,frequency,data.start_date,data.end_date,t).run();await audit(db,u,'solidarity_motif_created',newid);return j({ok:true,id:newid});
+  }
+  const n=(await db.prepare('SELECT COUNT(*) AS n FROM solidarity_contributions WHERE motif_id=? AND org_id=?').bind(motifId,oid).first()).n;
+  need(!n,'Motif avec cotisations : modifications financières verrouillées');
+  await db.prepare('UPDATE solidarity_motifs SET title=?,contribution=?,destination=?,beneficiary_id=?,frequency=?,start_date=?,end_date=? WHERE id=? AND org_id=?').bind(title,amount,destination,ben,frequency,data.start_date,data.end_date,motifId,oid).run();await audit(db,u,'solidarity_motif_updated',motifId);return j({ok:true});
+ }
+ if(section==='solidarity_motif_delete'){
+  need(motif,'Motif introuvable');await active(motifId);await passwordCheck();const count=(await db.prepare('SELECT COUNT(*) AS n FROM solidarity_contributions WHERE motif_id=? AND org_id=?').bind(motifId,oid).first()).n;need(!count&&!motif.withdrawn,'Motif avec mouvements : suppression interdite');await db.prepare('DELETE FROM solidarity_motifs WHERE id=? AND org_id=?').bind(motifId,oid).run();await audit(db,u,'solidarity_motif_deleted',motifId);return j({ok:true});
+ }
+ if(section==='solidarity_contribution_create' || section==='solidarity_contribution_update' || section==='solidarity_contribution_delete'){
+  if(section==='solidarity_contribution_delete' || section==='solidarity_contribution_update'){
+   const row=await db.prepare('SELECT c.*,x.withdrawn,x.status AS motif_status FROM solidarity_contributions c JOIN solidarity_motifs x ON x.id=c.motif_id WHERE c.id=? AND c.org_id=?').bind(data.id,oid).first();need(row,'Mouvement introuvable');await passwordCheck();need(row.motif_status==='active'&&!row.withdrawn,'Motif clôturé ou fonds retirés');await active(row.motif_id);
+   if(section==='solidarity_contribution_delete'){await db.prepare('DELETE FROM solidarity_contributions WHERE id=? AND org_id=?').bind(row.id,oid).run();await audit(db,u,'solidarity_contribution_deleted',row.id);return j({ok:true});}
+   data.motif_id=row.motif_id;data.member_id=row.member_id;
+  }
+  const x=await active(data.motif_id);const member=await db.prepare('SELECT id FROM members WHERE id=? AND org_id=?').bind(data.member_id,oid).first();need(member,'Membre invalide');
+  need(within(data.payment_date),'Date de paiement invalide');need(data.payment_date<=new Date().toISOString().slice(0,10),'Paiement futur interdit');
+  let amt=money(data.amount);need(amt>0,'Montant reçu invalide');
+  let dates=[],cur=new Date(x.start_date+'T12:00:00Z'),end=new Date(x.end_date+'T12:00:00Z');
+  for(let i=0;i<240&&cur<=end;i++) {dates.push(cur.toISOString().slice(0,10));if(x.frequency==='weekly')cur.setUTCDate(cur.getUTCDate()+7);else {const day=cur.getUTCDate();cur.setUTCDate(1);cur.setUTCMonth(cur.getUTCMonth()+1);cur.setUTCDate(Math.min(day,new Date(Date.UTC(cur.getUTCFullYear(),cur.getUTCMonth()+1,0)).getUTCDate()));}}
+  const expected=dates.filter(d=>d<=data.payment_date).length*x.contribution;
+  need(expected>0,'Aucune cotisation exigible à cette date');
+  const already=(await db.prepare('SELECT COALESCE(SUM(amount),0) AS n FROM solidarity_contributions WHERE motif_id=? AND member_id=? AND org_id=?').bind(x.id,data.member_id,oid).first()).n;
+  const previous=section==='solidarity_contribution_update'?(await db.prepare('SELECT amount FROM solidarity_contributions WHERE id=? AND org_id=?').bind(data.id,oid).first()).amount:0;
+  need(already-previous+amt<=expected,'Montant supérieur au reste exigible');
+  if(section==='solidarity_contribution_update'){
+   const row=await db.prepare('SELECT * FROM solidarity_contributions WHERE id=? AND org_id=?').bind(data.id,oid).first();need(row,'Mouvement introuvable');
+   const received=(await db.prepare('SELECT COALESCE(SUM(amount),0) AS n FROM solidarity_contributions WHERE motif_id=? AND member_id=? AND org_id=? AND id<>?').bind(x.id,data.member_id,oid,row.id).first()).n;
+   need(received+amt<=x.contribution*240,'Plafond de cotisation dépassé');await db.prepare('UPDATE solidarity_contributions SET amount=?,payment_date=? WHERE id=? AND org_id=?').bind(amt,data.payment_date,row.id,oid).run();await audit(db,u,'solidarity_contribution_updated',row.id);return j({ok:true});
+  }
+  let newid=id();await db.prepare('INSERT INTO solidarity_contributions(id,org_id,motif_id,member_id,payment_date,amount,created_at) VALUES(?,?,?,?,?,?,?)').bind(newid,oid,x.id,data.member_id,data.payment_date,amt,t).run();await audit(db,u,'solidarity_contribution_created',newid);return j({ok:true,id:newid});
+ }
+ if(section==='solidarity_motif_withdraw'){
+  need(motif,'Motif introuvable');await active(motifId);await passwordCheck();need(data.confirm===true,'Confirmation obligatoire');
+  const sum=(await db.prepare('SELECT COALESCE(SUM(amount),0) AS n FROM solidarity_contributions WHERE motif_id=? AND org_id=?').bind(motifId,oid).first()).n;
+  await db.prepare("UPDATE solidarity_motifs SET withdrawn=?,status='closed' WHERE id=? AND org_id=? AND status='active'").bind(sum,motifId,oid).run();await audit(db,u,'solidarity_motif_closed',motifId,'Retrait '+sum+' FCFA');return j({ok:true,withdrawn:sum});
+ }
+ return fail('Action de solidarité inconnue',400);
+}
 if(section==='organization'){need(sa,'Super Admin requis');need(goodName(data.name),'Nom requis');let oid=id();await db.prepare('INSERT INTO organizations(id,name,locality,plan_started_at,plan_expires_at,created_at) VALUES(?,?,?,?,?,?)').bind(oid,data.name.trim(),String(data.locality||'').slice(0,100),t,t+10*86400000,t).run();await audit(db,u,'organization_created',oid);return j({ok:true,id:oid});}
 if(section==='organization_status'){need(sa,'Super Admin requis');need(['active','inactive','archived'].includes(data.status),'Statut invalide');await db.prepare('UPDATE organizations SET status=? WHERE id=?').bind(data.status,data.id).run();await audit(db,u,'organization_status',data.id,data.status);return j({ok:true});}
 if(section==='organization_plan'){need(sa,'Super Admin requis');let days={free:10,standard:30,business:365};need(days[data.plan],'Plan invalide');await db.prepare('UPDATE organizations SET plan=?,plan_started_at=?,plan_expires_at=? WHERE id=?').bind(data.plan,t,t+days[data.plan]*86400000,data.id).run();await audit(db,u,'organization_plan',data.id,data.plan);return j({ok:true});}

@@ -203,3 +203,11 @@ Le remboursement est autorisé dès la date civile du décaissement (y compris l
 Les colonnes sont désormais : Membre, Capital accordé, Intérêt, Pénalité, Remboursement du jour, Date du jour, Reste à payer et Statut. La colonne Statut regroupe les boutons Modifier, Reçu et Supprimer. L'impression du reçu utilise la fonction d'impression du navigateur (destination PDF possible).
 
 Par sécurité, la correction du montant et la suppression ne sont autorisées que sur le dernier remboursement d'un crédit actif appartenant à l'association, sans pénalité déjà comptabilisée ; un mot de passe administrateur est exigé. Les règlements antérieurs et les dossiers avec pénalités doivent être régularisés par une procédure comptable contrôlée. Aucun changement de schéma D1 n'est requis si la migration 0003 est déjà appliquée.
+
+## Solidarité – nouvelle version (migration 0004)
+
+Avant déploiement, exécuter **une seule fois** dans Cloudflare D1 le fichier `migrations/0004_solidarite_motifs.sql` (effectuer une sauvegarde D1 auparavant). Les anciennes entrées de la table `solidarity` sont conservées séparément ; les nouvelles cotisations sont enregistrées dans `solidarity_contributions` et liées aux nouveaux motifs de `solidarity_motifs`.
+
+La section `/solidarity` propose trois onglets : Motifs de solidarité, Mouvements des cotisations, Résumé des cotisations. Le logiciel calcule le nombre de périodes exigibles depuis la date de début, pour les membres actifs de l'association. Le montant affiché est **exigible à ce jour**, pas le total futur sur toute la durée. L'adhésion à une date différente pour chaque membre n'est pas encore prise en compte : vérifier l'éligibilité avant de créer les motifs. Les formulaires de modification ou suppression demandent un mot de passe administrateur. Une fois qu'un motif est clôturé par « Retrait des fonds », ses mouvements ne sont plus modifiables ; cette clôture comptabilise le total encaissé et ne déclenche pas de virement bancaire externe. Les rapports sont imprimables au format PDF via le navigateur.
+
+**Attention :** ce module introduit une caisse de solidarité détaillée distincte des anciennes écritures. Avant tout usage financier réel, rapprocher les données historiques et vérifier les soldes ; la clôture ne remplace pas un transfert de fonds effectif ni une comptabilité générale exhaustive.
