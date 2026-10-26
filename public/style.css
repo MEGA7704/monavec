@@ -158,3 +158,6 @@ button.meeting-unpaid:hover:not(:disabled){background:#991b1b!important;}
 
 /* Recherche Solidarité et gestion des dépenses */
 .solid-filter{max-width:440px;margin:12px 0 18px}.solid-filter input{width:100%}.solid-table tr[hidden]{display:none!important}.expenses-table table{table-layout:fixed;white-space:normal}.expenses-table th,.expenses-table td{overflow-wrap:anywhere;text-align:center}.expenses-table td:first-child,.expenses-table th:first-child{text-align:left}.expense-actions{text-align:center}.expense-actions button{margin:2px 3px}.expenses-table td:last-child{white-space:normal}@media(max-width:720px){.expenses-table table,.expenses-table tbody,.expenses-table tr,.expenses-table td{display:block;width:100%}.expenses-table thead{display:none}.expenses-table tr{margin:8px 0;padding:10px;border:1px solid #e0e9e4;border-radius:12px}.expenses-table td:before{content:attr(data-label) ": ";font-weight:700}.expenses-table td:first-child{text-align:center}}
+
+/* Résumé solidarité : seules les lignes avec impayés sont interactives. */
+.solid-due-row{cursor:pointer;background:#fff7f7}.solid-due-row:hover{background:#fee8e8}.solid-due-row:focus-visible{outline:2px solid #b91c1c;outline-offset:-2px}.solid-due-row .debt-due{font-weight:800}
