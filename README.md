@@ -222,3 +222,13 @@ Exécuter **une seule fois** `migrations/0005_numeros_solidarite.sql` dans la co
 - Les versements restent possibles après la date de fin prévue du motif tant que le motif et son cycle sont actifs et non clôturés.
 - La clôture du motif exige la fin de période et le paiement intégral des cotisations attendues pour les membres actifs au moment de la vérification. **Limite importante :** l'appartenance des membres à une période n'est pas encore historisée ; la clôture s'appuie sur l'effectif actif courant. Un cycle déjà clôturé demeure non modifiable et interdit tout versement ; régulariser avant de clôturer le cycle.
 - Modification et suppression des dépenses avec mot de passe administrateur ; opérations sur un cycle clôturé interdites. Chaque action est enregistrée dans le journal.
+
+## Migration 0006 — Numérotation courte de solidarité
+
+Avant déploiement, sauvegarder la base D1 `avec_d1`, puis exécuter **une seule fois** les instructions SQL de `migrations/0006_references_courtes.sql` dans la console D1. Ne pas copier le symbole `>` des captures Cloudflare ; sélectionner uniquement les instructions SQL.
+
+- Chaque motif nouvellement créé reçoit une référence aléatoire de **quatre caractères hexadécimaux**, par exemple `A47F`. La base possède déjà un index unique sur cette référence (migration 0005).
+- Chaque mouvement du motif reçoit la référence du motif, suivie d'un numéro croissant : `A47F-001`, `A47F-002`, etc. Chaque motif possède sa propre séquence. Une suppression de mouvement ne réutilise pas son numéro.
+- La migration convertit les anciens motifs vers des codes courts garantis distincts pour un ensemble de 65 536 motifs maximum et renumérote chronologiquement les mouvements antérieurs. Ces références anciennes changent : exporter les historiques avant migration si elles figurent sur des reçus déjà délivrés.
+- La nouvelle table `solidarity_movement_sequences` conserve les numéros déjà attribués. Ne pas la supprimer.
+- Après migration, déployer sur Pages comme précédemment (commande de build vide ; répertoire de sortie `public`). Aucune modification des identifiants D1/KV ou des secrets n'est requise.

@@ -4,6 +4,24 @@ const encoder = new TextEncoder();
 const j = (v,status=200,more={})=>new Response(JSON.stringify(v),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...more}});
 const id=()=>crypto.randomUUID();
 const reference=(prefix)=>prefix+'-'+new Date().getUTCFullYear().toString().slice(-2)+'-'+Array.from(crypto.getRandomValues(new Uint8Array(6))).map(v=>v.toString(16).padStart(2,'0')).join('').toUpperCase();
+// Références des motifs : quatre caractères hexadécimaux aléatoires, contrôlés dans D1.
+async function newMotifReference(db){
+ for(let attempts=0;attempts<100;attempts++){
+  const bytes=crypto.getRandomValues(new Uint8Array(2));
+  const code=[...bytes].map(b=>b.toString(16).padStart(2,'0')).join('').toUpperCase();
+  const used=await db.prepare('SELECT 1 FROM solidarity_motifs WHERE reference=? LIMIT 1').bind(code).first();
+  if(!used)return code;
+ }
+ throw Error('Impossible de générer une référence unique, recommencez');
+}
+// L'incrément s'effectue atomiquement dans SQLite et ne réutilise pas les numéros supprimés.
+async function nextMovementNumber(db,motifId){
+ const row=await db.prepare(`INSERT INTO solidarity_movement_sequences(motif_id,last_number)
+ VALUES(?,1) ON CONFLICT(motif_id) DO UPDATE SET last_number=last_number+1
+ RETURNING last_number`).bind(motifId).first();
+ return row.last_number;
+}
+
 const now=()=>Date.now();
 const hex=a=>[...new Uint8Array(a)].map(b=>b.toString(16).padStart(2,'0')).join('');
 const digest=async s=>hex(await crypto.subtle.digest('SHA-256',encoder.encode(s)));
@@ -148,7 +166,7 @@ if(section.startsWith('solidarity_')){
   if(destination==='member'){let ben=await db.prepare('SELECT id FROM members WHERE id=? AND org_id=? AND active=1').bind(data.beneficiary_id,oid).first();need(ben,'Bénéficiaire invalide');}
   const ben=destination==='member'?data.beneficiary_id:null;
   if(section==='solidarity_motif_create'){
-   const cy=await activeCycle(db,oid,data.cycle_id);need(cy,'Cycle actif requis');const newid=id(),number=reference('MOT');await db.prepare('INSERT INTO solidarity_motifs(id,org_id,cycle_id,title,contribution,destination,beneficiary_id,frequency,start_date,end_date,created_at,reference) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)').bind(newid,oid,cy.id,title,amount,destination,ben,frequency,data.start_date,data.end_date,t,number).run();await audit(db,u,'solidarity_motif_created',newid);return j({ok:true,id:newid});
+   const cy=await activeCycle(db,oid,data.cycle_id);need(cy,'Cycle actif requis');const newid=id(),number=await newMotifReference(db);await db.prepare('INSERT INTO solidarity_motifs(id,org_id,cycle_id,title,contribution,destination,beneficiary_id,frequency,start_date,end_date,created_at,reference) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)').bind(newid,oid,cy.id,title,amount,destination,ben,frequency,data.start_date,data.end_date,t,number).run();await audit(db,u,'solidarity_motif_created',newid);return j({ok:true,id:newid});
   }
   const n=(await db.prepare('SELECT COUNT(*) AS n FROM solidarity_contributions WHERE motif_id=? AND org_id=?').bind(motifId,oid).first()).n;
   need(!n,'Motif avec cotisations : modifications financières verrouillées');
@@ -178,7 +196,7 @@ if(section.startsWith('solidarity_')){
    const received=(await db.prepare('SELECT COALESCE(SUM(amount),0) AS n FROM solidarity_contributions WHERE motif_id=? AND member_id=? AND org_id=? AND id<>?').bind(x.id,data.member_id,oid,row.id).first()).n;
    need(received+amt<=x.contribution*240,'Plafond de cotisation dépassé');await db.prepare('UPDATE solidarity_contributions SET amount=?,payment_date=? WHERE id=? AND org_id=?').bind(amt,data.payment_date,row.id,oid).run();await audit(db,u,'solidarity_contribution_updated',row.id);return j({ok:true});
   }
-  let newid=id(),number=reference('MVT');await db.prepare('INSERT INTO solidarity_contributions(id,org_id,motif_id,member_id,payment_date,amount,created_at,reference) VALUES(?,?,?,?,?,?,?,?)').bind(newid,oid,x.id,data.member_id,data.payment_date,amt,t,number).run();await audit(db,u,'solidarity_contribution_created',newid);return j({ok:true,id:newid});
+  let newid=id(),seq=await nextMovementNumber(db,x.id),number=x.reference+'-'+String(seq).padStart(3,'0');await db.prepare('INSERT INTO solidarity_contributions(id,org_id,motif_id,member_id,payment_date,amount,created_at,reference) VALUES(?,?,?,?,?,?,?,?)').bind(newid,oid,x.id,data.member_id,data.payment_date,amt,t,number).run();await audit(db,u,'solidarity_contribution_created',newid);return j({ok:true,id:newid});
  }
  if(section==='solidarity_motif_withdraw'){
   need(motif,'Motif introuvable');await active(motifId);await passwordCheck();need(data.confirm===true,'Confirmation obligatoire');
