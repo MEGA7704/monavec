@@ -3,6 +3,7 @@
 const encoder = new TextEncoder();
 const j = (v,status=200,more={})=>new Response(JSON.stringify(v),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...more}});
 const id=()=>crypto.randomUUID();
+const reference=(prefix)=>prefix+'-'+new Date().getUTCFullYear().toString().slice(-2)+'-'+Array.from(crypto.getRandomValues(new Uint8Array(6))).map(v=>v.toString(16).padStart(2,'0')).join('').toUpperCase();
 const now=()=>Date.now();
 const hex=a=>[...new Uint8Array(a)].map(b=>b.toString(16).padStart(2,'0')).join('');
 const digest=async s=>hex(await crypto.subtle.digest('SHA-256',encoder.encode(s)));
@@ -147,7 +148,7 @@ if(section.startsWith('solidarity_')){
   if(destination==='member'){let ben=await db.prepare('SELECT id FROM members WHERE id=? AND org_id=? AND active=1').bind(data.beneficiary_id,oid).first();need(ben,'Bénéficiaire invalide');}
   const ben=destination==='member'?data.beneficiary_id:null;
   if(section==='solidarity_motif_create'){
-   const cy=await activeCycle(db,oid,data.cycle_id);need(cy,'Cycle actif requis');const newid=id();await db.prepare('INSERT INTO solidarity_motifs(id,org_id,cycle_id,title,contribution,destination,beneficiary_id,frequency,start_date,end_date,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)').bind(newid,oid,cy.id,title,amount,destination,ben,frequency,data.start_date,data.end_date,t).run();await audit(db,u,'solidarity_motif_created',newid);return j({ok:true,id:newid});
+   const cy=await activeCycle(db,oid,data.cycle_id);need(cy,'Cycle actif requis');const newid=id(),number=reference('MOT');await db.prepare('INSERT INTO solidarity_motifs(id,org_id,cycle_id,title,contribution,destination,beneficiary_id,frequency,start_date,end_date,created_at,reference) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)').bind(newid,oid,cy.id,title,amount,destination,ben,frequency,data.start_date,data.end_date,t,number).run();await audit(db,u,'solidarity_motif_created',newid);return j({ok:true,id:newid});
   }
   const n=(await db.prepare('SELECT COUNT(*) AS n FROM solidarity_contributions WHERE motif_id=? AND org_id=?').bind(motifId,oid).first()).n;
   need(!n,'Motif avec cotisations : modifications financières verrouillées');
@@ -177,11 +178,17 @@ if(section.startsWith('solidarity_')){
    const received=(await db.prepare('SELECT COALESCE(SUM(amount),0) AS n FROM solidarity_contributions WHERE motif_id=? AND member_id=? AND org_id=? AND id<>?').bind(x.id,data.member_id,oid,row.id).first()).n;
    need(received+amt<=x.contribution*240,'Plafond de cotisation dépassé');await db.prepare('UPDATE solidarity_contributions SET amount=?,payment_date=? WHERE id=? AND org_id=?').bind(amt,data.payment_date,row.id,oid).run();await audit(db,u,'solidarity_contribution_updated',row.id);return j({ok:true});
   }
-  let newid=id();await db.prepare('INSERT INTO solidarity_contributions(id,org_id,motif_id,member_id,payment_date,amount,created_at) VALUES(?,?,?,?,?,?,?)').bind(newid,oid,x.id,data.member_id,data.payment_date,amt,t).run();await audit(db,u,'solidarity_contribution_created',newid);return j({ok:true,id:newid});
+  let newid=id(),number=reference('MVT');await db.prepare('INSERT INTO solidarity_contributions(id,org_id,motif_id,member_id,payment_date,amount,created_at,reference) VALUES(?,?,?,?,?,?,?,?)').bind(newid,oid,x.id,data.member_id,data.payment_date,amt,t,number).run();await audit(db,u,'solidarity_contribution_created',newid);return j({ok:true,id:newid});
  }
  if(section==='solidarity_motif_withdraw'){
   need(motif,'Motif introuvable');await active(motifId);await passwordCheck();need(data.confirm===true,'Confirmation obligatoire');
   const sum=(await db.prepare('SELECT COALESCE(SUM(amount),0) AS n FROM solidarity_contributions WHERE motif_id=? AND org_id=?').bind(motifId,oid).first()).n;
+  let cur=new Date(motif.start_date+'T12:00:00Z'),end=new Date(motif.end_date+'T12:00:00Z'),periods=0;
+  for(let i=0;i<240&&cur<=end;i++){periods++;if(motif.frequency==='weekly')cur.setUTCDate(cur.getUTCDate()+7);else {const d=cur.getUTCDate();cur.setUTCDate(1);cur.setUTCMonth(cur.getUTCMonth()+1);cur.setUTCDate(Math.min(d,new Date(Date.UTC(cur.getUTCFullYear(),cur.getUTCMonth()+1,0)).getUTCDate()));}}
+  need(new Date().toISOString().slice(0,10)>=motif.end_date,'Clôture interdite avant la date de fin');
+  const memberCount=(await db.prepare('SELECT COUNT(*) AS n FROM members WHERE org_id=? AND active=1').bind(oid).first()).n;
+  const expected=periods*motif.contribution*memberCount;
+  need(expected>0&&sum>=expected,'Cotisations incomplètes : '+Math.max(0,expected-sum)+' FCFA restent à encaisser');
   await db.prepare("UPDATE solidarity_motifs SET withdrawn=?,status='closed' WHERE id=? AND org_id=? AND status='active'").bind(sum,motifId,oid).run();await audit(db,u,'solidarity_motif_closed',motifId,'Retrait '+sum+' FCFA');return j({ok:true,withdrawn:sum});
  }
  return fail('Action de solidarité inconnue',400);
@@ -348,6 +355,13 @@ if(section==='repayment'){
  stmts.push(db.prepare('INSERT INTO audit_logs(id,org_id,user_id,action,target,details,created_at) VALUES(?,?,?,?,?,?,?)').bind(id(),oid,u.id,'repayment_created',rid,`montant ${amt}, pénalité ${pf}`,t));await db.batch(stmts);return j({ok:true,id:rid,principal_amount:pa,interest_amount:ia,penalty_amount:pf});
 }
 if(section==='solidarity'){need(await activeCycle(db,oid,cid),'Cycle actif requis');let amount=money(data.amount);need(amount>0&&['income','expense'].includes(data.kind),'Montant/type invalide');let sid=id();await db.prepare('INSERT INTO solidarity(id,org_id,cycle_id,member_id,kind,amount,notes,created_at) VALUES(?,?,?,?,?,?,?,?)').bind(sid,oid,cid,null,data.kind,amount,String(data.notes||'').slice(0,300),t).run();await audit(db,u,'solidarity_created',sid);return j({ok:true,id:sid});}
+if(section==='expense_update'||section==='expense_delete'){
+ need(admin,'Administrateur requis');const row=await db.prepare('SELECT e.*,c.status AS cycle_status FROM expenses e JOIN cycles c ON c.id=e.cycle_id WHERE e.id=? AND e.org_id=?').bind(data.id,u.org_id).first();
+ need(row,'Dépense introuvable');need(row.cycle_status==='active','Cycle clôturé : modification interdite');
+ const acct=await db.prepare('SELECT password_hash,password_salt FROM users WHERE id=?').bind(u.id).first();need(acct&&equal(await hashPassword(String(data.password||''),acct.password_salt),acct.password_hash),'Mot de passe incorrect');
+ if(section==='expense_delete'){await db.prepare('DELETE FROM expenses WHERE id=? AND org_id=?').bind(row.id,u.org_id).run();await audit(db,u,'expense_deleted',row.id,'Montant '+row.amount+' / '+row.description);return j({ok:true});}
+ let amount=money(data.amount),description=String(data.description||'').trim();need(amount>0&&goodName(description),'Montant et description obligatoires');await db.prepare('UPDATE expenses SET amount=?,description=? WHERE id=? AND org_id=?').bind(amount,description,row.id,u.org_id).run();await audit(db,u,'expense_updated',row.id,'Ancien montant '+row.amount+' nouveau '+amount);return j({ok:true});
+}
 if(section==='expense'){need(admin,'Administrateur requis');need(await activeCycle(db,oid,cid),'Cycle actif requis');let amt=money(data.amount);need(amt>0&&goodName(data.description),'Montant et description obligatoires');let eid=id();await db.prepare('INSERT INTO expenses(id,org_id,cycle_id,amount,description,created_at) VALUES(?,?,?,?,?,?)').bind(eid,oid,cid,amt,data.description.trim(),t).run();await audit(db,u,'expense_created',eid);return j({ok:true,id:eid});}
 if(section==='distribution_preview'){need(admin,'Administrateur requis');let cy=await activeCycle(db,oid,cid);need(cy,'Cycle actif requis');let amounts=(await db.prepare('SELECT member_id,SUM(amount) AS amount FROM savings WHERE org_id=? AND cycle_id=? GROUP BY member_id').bind(oid,cid).all()).results;let cash=await db.prepare('SELECT COALESCE(SUM(interest_amount),0) AS v FROM repayments r JOIN loans l ON l.id=r.loan_id WHERE l.org_id=? AND l.cycle_id=?').bind(oid,cid).first();let exp=await db.prepare('SELECT COALESCE(SUM(amount),0) AS v FROM expenses WHERE org_id=? AND cycle_id=?').bind(oid,cid).first();let debt=await db.prepare('SELECT COALESCE(SUM(l.principal+l.interest_total),0) AS due FROM loans l WHERE l.org_id=? AND l.cycle_id=?').bind(oid,cid).first();let rep=await db.prepare('SELECT COALESCE(SUM(r.principal_amount+r.interest_amount),0) AS paid FROM repayments r JOIN loans l ON l.id=r.loan_id WHERE l.org_id=? AND l.cycle_id=?').bind(oid,cid).first();let fines=await db.prepare('SELECT COALESCE(SUM(fine_amount),0) AS v FROM meeting_attendance WHERE org_id=? AND cycle_id=? AND fine_paid=1 AND present=0').bind(oid,cid).first();let penalties=await db.prepare('SELECT COALESCE(SUM(r.penalty_amount),0) AS v FROM repayments r JOIN loans l ON l.id=r.loan_id WHERE l.org_id=? AND l.cycle_id=?').bind(oid,cid).first();let profit=cash.v+penalties.v+fines.v-exp.v,total=amounts.reduce((a,x)=>a+x.amount,0);let ongoing=(await db.prepare('SELECT * FROM loans WHERE org_id=? AND cycle_id=?').bind(oid,cid).all()).results;let unpaidPenalty=false;for(const loan of ongoing){if(loanSituation(loan,await loanPaid(db,loan.id)).total>0){unpaidPenalty=true;break}}let eligible=!unpaidPenalty&&debt.due<=rep.paid&&profit>=0&&total>0;let rows=amounts.map(x=>({...x,share:total?Math.floor(profit*x.amount/total):0}));let rem=profit-rows.reduce((a,x)=>a+x.share,0);rows.sort((a,b)=>((profit*b.amount)%total)-((profit*a.amount)%total)||a.member_id.localeCompare(b.member_id));for(let k=0;k<rem&&k<rows.length;k++)rows[k].share++;return j({ok:true,data:{eligible,reason:eligible?'':'Crédits non soldés, épargne vide ou résultat négatif',profit,total,rows}});}
 return fail('Action inconnue',404);}

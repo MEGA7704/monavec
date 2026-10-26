@@ -211,3 +211,14 @@ Avant déploiement, exécuter **une seule fois** dans Cloudflare D1 le fichier `
 La section `/solidarity` propose trois onglets : Motifs de solidarité, Mouvements des cotisations, Résumé des cotisations. Le logiciel calcule le nombre de périodes exigibles depuis la date de début, pour les membres actifs de l'association. Le montant affiché est **exigible à ce jour**, pas le total futur sur toute la durée. L'adhésion à une date différente pour chaque membre n'est pas encore prise en compte : vérifier l'éligibilité avant de créer les motifs. Les formulaires de modification ou suppression demandent un mot de passe administrateur. Une fois qu'un motif est clôturé par « Retrait des fonds », ses mouvements ne sont plus modifiables ; cette clôture comptabilise le total encaissé et ne déclenche pas de virement bancaire externe. Les rapports sont imprimables au format PDF via le navigateur.
 
 **Attention :** ce module introduit une caisse de solidarité détaillée distincte des anciennes écritures. Avant tout usage financier réel, rapprocher les données historiques et vérifier les soldes ; la clôture ne remplace pas un transfert de fonds effectif ni une comptabilité générale exhaustive.
+
+## Mise à jour — numérotation Solidarité et dépenses
+
+Exécuter **une seule fois** `migrations/0005_numeros_solidarite.sql` dans la console D1, après les migrations précédentes. Vérifier au préalable avec `PRAGMA table_info(solidarity_motifs);` et `PRAGMA table_info(solidarity_contributions);` que les colonnes `reference` n'existent pas. Ne jamais coller le symbole `>` de l'invite Cloudflare dans la console SQL. Si la colonne existe déjà, ne pas répéter l'instruction ALTER TABLE.
+
+- Références automatiques des nouveaux motifs : `MOT-AA-XXXXXXXXXXXX`, des mouvements : `MVT-AA-XXXXXXXXXXXX`, avec 12 caractères hexadécimaux aléatoires et index uniques.
+- Les anciens enregistrements reçoivent une référence stable basée sur leur identifiant existant.
+- Recherche des motifs par numéro, destination, bénéficiaire ou intitulé ; recherche des mouvements par numéro ou montant.
+- Les versements restent possibles après la date de fin prévue du motif tant que le motif et son cycle sont actifs et non clôturés.
+- La clôture du motif exige la fin de période et le paiement intégral des cotisations attendues pour les membres actifs au moment de la vérification. **Limite importante :** l'appartenance des membres à une période n'est pas encore historisée ; la clôture s'appuie sur l'effectif actif courant. Un cycle déjà clôturé demeure non modifiable et interdit tout versement ; régulariser avant de clôturer le cycle.
+- Modification et suppression des dépenses avec mot de passe administrateur ; opérations sur un cycle clôturé interdites. Chaque action est enregistrée dans le journal.
