@@ -168,3 +168,23 @@ button.meeting-unpaid:hover:not(:disabled){background:#991b1b!important;}
 /* Bilans des partages — largeur complète */
 .partage-card{width:100%;overflow:hidden}.partage-card .table-wrap{width:100%;overflow-x:auto}.partage-card table{min-width:980px;white-space:normal}.partage-card th,.partage-card td{vertical-align:middle;min-width:90px;text-align:right}.partage-card th:first-child,.partage-card td:first-child{text-align:left}.partage-card tr:last-child{font-weight:750}.partage-recap{min-width:0!important}.partage-recap td{text-align:right}.partage-bottom{text-align:right;padding:12px 0 25px}.partage-modal{width:98vw!important;max-width:98vw!important;overflow:auto;max-height:95dvh}.partage-modal .partage-wide{max-height:60vh;overflow:auto}.partage-modal .partage-wide table{min-width:2200px;white-space:nowrap}.partage-modal .partage-wide th{position:sticky;top:0;z-index:1}.partage-modal .share-member-row{cursor:pointer}.partage-modal .share-member-row:hover{background:#eef8f4}.partage-totals{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:9px}.partage-totals>div{background:#f2f7f4;padding:9px;border-radius:10px;display:flex;flex-direction:column;gap:5px}.partage-totals span{font-size:12px;color:#60756c}.money-right{text-align:right}
 @media print{body:has(.partage-preview) #app,body:has(.partage-preview) .close,body:has(.partage-preview) .partage-preview .toolbar{display:none!important}body:has(.partage-preview) #modal{position:static;display:block;background:#fff}body:has(.partage-preview) .modal{position:static;max-height:none;overflow:visible;box-shadow:none;padding:0}body:has(.partage-preview) .partage-wide{max-height:none;overflow:visible}body:has(.partage-preview) .partage-wide table{font-size:7px;min-width:0}body:has(.partage-preview) .partage-wide th,body:has(.partage-preview) .partage-wide td{padding:3px;word-break:break-word;white-space:normal}@page{size:A4 landscape;margin:9mm}}
+
+/* Prévisualisation des partages : colonnes proportionnées et alignées */
+.partage-modal .partage-wide{width:100%;max-height:65vh;overflow-x:auto;overflow-y:auto;scrollbar-gutter:stable;border:1px solid #dce9e2;border-radius:12px}
+.partage-modal .partage-wide table{width:100%;min-width:2520px;table-layout:fixed;border-collapse:separate;border-spacing:0;white-space:normal;font-variant-numeric:tabular-nums}
+.partage-modal .partage-wide th,.partage-modal .partage-wide td{padding:11px 9px;vertical-align:middle;line-height:1.35;overflow-wrap:normal;word-break:normal;border-bottom:1px solid #e9efec}
+.partage-modal .partage-wide th{text-align:right;white-space:normal;background:#eaf4ef;color:#17483c;font-size:12px;font-weight:750;position:sticky;top:0;z-index:2}
+.partage-modal .partage-wide td{text-align:right;white-space:nowrap;font-size:12px}
+.partage-modal .partage-wide th:nth-child(1),.partage-modal .partage-wide td:nth-child(1){width:52px;text-align:center}
+.partage-modal .partage-wide th:nth-child(2),.partage-modal .partage-wide td:nth-child(2){width:128px;text-align:left}
+.partage-modal .partage-wide th:nth-child(3),.partage-modal .partage-wide td:nth-child(3){width:205px;text-align:left}
+.partage-modal .partage-wide th:nth-child(4),.partage-modal .partage-wide td:nth-child(4){width:145px}
+.partage-modal .partage-wide th:nth-child(5),.partage-modal .partage-wide td:nth-child(5){width:78px}
+.partage-modal .partage-wide th:nth-child(6),.partage-modal .partage-wide td:nth-child(6){width:145px}
+.partage-modal .partage-wide th:nth-child(n+7),.partage-modal .partage-wide td:nth-child(n+7){width:122px}
+.partage-modal .partage-wide th:last-child,.partage-modal .partage-wide td:last-child{width:155px;font-weight:750}
+.partage-modal .partage-wide tbody tr:nth-child(even){background:#fafcfb}
+.partage-modal .partage-wide tbody tr:hover{background:#e6f4ec}
+.partage-modal .partage-wide td.debt-due{color:#b91c1c;font-weight:800}
+@media(max-width:720px){.partage-modal .partage-wide{max-height:58vh}.partage-modal .partage-wide table{min-width:2520px}}
+@media print{body:has(.partage-preview) .partage-modal .partage-wide{overflow:visible;max-height:none}body:has(.partage-preview) .partage-modal .partage-wide table{width:100%;min-width:0;table-layout:auto;font-size:6px}body:has(.partage-preview) .partage-modal .partage-wide th,body:has(.partage-preview) .partage-modal .partage-wide td{width:auto!important;padding:3px 2px;white-space:normal;overflow-wrap:anywhere;font-size:6px}}

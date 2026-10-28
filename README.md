@@ -242,3 +242,11 @@ La page `/distributions` présente quatre tableaux distincts (épargnes, amendes
 **Distinction impérative :** le *bénéfice théorique* applique la formule du cahier des charges sur les valeurs dues, dont certaines ne sont pas encaissées. Le *résultat sur encaissements* est distinct. Les solidarités sont affichées dans un rapport estimatif, mais leur affectation en bénéfice distribuable dépend des règles statutaires et ne doit pas être exécutée sans rapprochement comptable. Les fonds du cycle ne sont pas automatiquement distribués et les cycles ne sont pas clôturés par cette page. Le solde « épargne en caisse » est une vision brute de l'épargne encaissée et non la trésorerie réelle nette après prêts/décaissements.
 
 Les données de présence sont basées sur les enregistrements `meeting_attendance` existants ; les amendes ne prennent en charge ici que les indicateurs payé/non payé déjà présents dans le schéma. Les membres du partage sont les membres actuellement présents dans le registre de l'association, le système ne disposant pas encore d'une adhésion historisée par cycle. La prévisualisation donne une estimation et ne remplace pas une clôture comptable exhaustive.
+
+### Ajustement du tableau de prévisualisation du partage
+
+- Alignement des montants à droite et des membres à gauche.
+- Largeurs cohérentes pour les colonnes, en-têtes lisibles et lignes alternées.
+- Défilement horizontal réservé aux tableaux très larges (22 colonnes), notamment sur mobile.
+- Impression A4 paysage avec réduction automatique des colonnes.
+- Aucun changement aux calculs financiers, à D1 ou à l'authentification.
