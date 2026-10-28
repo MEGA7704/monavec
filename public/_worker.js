@@ -172,6 +172,22 @@ if(section.startsWith('solidarity_')){
   need(!n,'Motif avec cotisations : modifications financières verrouillées');
   await db.prepare('UPDATE solidarity_motifs SET title=?,contribution=?,destination=?,beneficiary_id=?,frequency=?,start_date=?,end_date=? WHERE id=? AND org_id=?').bind(title,amount,destination,ben,frequency,data.start_date,data.end_date,motifId,oid).run();await audit(db,u,'solidarity_motif_updated',motifId);return j({ok:true});
  }
+ if(section==='solidarity_motif_delete_closed'){
+  need(motif&&motif.status==='closed','Suppression réservée aux motifs clôturés');
+  await passwordCheck();
+  need(data.confirm===true,'Confirmation explicite obligatoire');
+  need(String(data.reference_confirmation||'')===String(motif.reference||''),'Numéro du motif incorrect');
+  const countRow=await db.prepare('SELECT COUNT(*) AS n,COALESCE(SUM(amount),0) AS total FROM solidarity_contributions WHERE motif_id=? AND org_id=?').bind(motifId,oid).first();
+  // Supprimer mouvements, compteur, motif et enregistrer la trace en un lot transactionnel D1.
+  const details=`Motif ${motif.reference||motif.id}; ${countRow.n} mouvement(s); ${countRow.total} FCFA encaissés; retrait historique ${motif.withdrawn||0} FCFA; suppression définitive autorisée`;
+  await db.batch([
+   db.prepare('DELETE FROM solidarity_contributions WHERE motif_id=? AND org_id=?').bind(motifId,oid),
+   db.prepare('DELETE FROM solidarity_movement_sequences WHERE motif_id=?').bind(motifId),
+   db.prepare("DELETE FROM solidarity_motifs WHERE id=? AND org_id=? AND status='closed'").bind(motifId,oid),
+   db.prepare('INSERT INTO audit_logs(id,org_id,user_id,action,target,details,created_at) VALUES(?,?,?,?,?,?,?)').bind(id(),oid,u.id,'solidarity_motif_closed_deleted',motifId,details,now())
+  ]);
+  return j({ok:true,deleted_movements:countRow.n});
+ }
  if(section==='solidarity_motif_delete'){
   need(motif,'Motif introuvable');await active(motifId);await passwordCheck();const count=(await db.prepare('SELECT COUNT(*) AS n FROM solidarity_contributions WHERE motif_id=? AND org_id=?').bind(motifId,oid).first()).n;need(!count&&!motif.withdrawn,'Motif avec mouvements : suppression interdite');await db.prepare('DELETE FROM solidarity_motifs WHERE id=? AND org_id=?').bind(motifId,oid).run();await audit(db,u,'solidarity_motif_deleted',motifId);return j({ok:true});
  }

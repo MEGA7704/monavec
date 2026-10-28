@@ -161,3 +161,6 @@ button.meeting-unpaid:hover:not(:disabled){background:#991b1b!important;}
 
 /* Résumé solidarité : seules les lignes avec impayés sont interactives. */
 .solid-due-row{cursor:pointer;background:#fff7f7}.solid-due-row:hover{background:#fee8e8}.solid-due-row:focus-visible{outline:2px solid #b91c1c;outline-offset:-2px}.solid-due-row .debt-due{font-weight:800}
+
+/* Masquage effectif du bénéficiaire sauf destination membre */
+#solidBeneficiary[hidden]{display:none!important}
