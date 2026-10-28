@@ -232,3 +232,13 @@ Avant déploiement, sauvegarder la base D1 `avec_d1`, puis exécuter **une seule
 - La migration convertit les anciens motifs vers des codes courts garantis distincts pour un ensemble de 65 536 motifs maximum et renumérote chronologiquement les mouvements antérieurs. Ces références anciennes changent : exporter les historiques avant migration si elles figurent sur des reçus déjà délivrés.
 - La nouvelle table `solidarity_movement_sequences` conserve les numéros déjà attribués. Ne pas la supprimer.
 - Après migration, déployer sur Pages comme précédemment (commande de build vide ; répertoire de sortie `public`). Aucune modification des identifiants D1/KV ou des secrets n'est requise.
+
+## Mise à jour : Partages — bilan du cycle (octobre 2026)
+
+La page `/distributions` présente quatre tableaux distincts (épargnes, amendes, crédits, solidarités communes non clôturées), un récapitulatif et une prévisualisation individuelle imprimable au format PDF par le navigateur. Les données sont chargées exclusivement pour le cycle choisi via `GET /api/load?section=partage_bilan&cycle_id=...`, avec isolation serveur de l'association.
+
+**Aucune nouvelle migration D1** : cette mise à jour s'appuie sur les migrations déjà présentes jusqu'à `0006`. Elle requiert les tables et champs existants des crédits, amendes et motifs de solidarité.
+
+**Distinction impérative :** le *bénéfice théorique* applique la formule du cahier des charges sur les valeurs dues, dont certaines ne sont pas encaissées. Le *résultat sur encaissements* est distinct. Les solidarités sont affichées dans un rapport estimatif, mais leur affectation en bénéfice distribuable dépend des règles statutaires et ne doit pas être exécutée sans rapprochement comptable. Les fonds du cycle ne sont pas automatiquement distribués et les cycles ne sont pas clôturés par cette page. Le solde « épargne en caisse » est une vision brute de l'épargne encaissée et non la trésorerie réelle nette après prêts/décaissements.
+
+Les données de présence sont basées sur les enregistrements `meeting_attendance` existants ; les amendes ne prennent en charge ici que les indicateurs payé/non payé déjà présents dans le schéma. Les membres du partage sont les membres actuellement présents dans le registre de l'association, le système ne disposant pas encore d'une adhésion historisée par cycle. La prévisualisation donne une estimation et ne remplace pas une clôture comptable exhaustive.
