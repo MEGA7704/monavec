@@ -250,3 +250,7 @@ Les données de présence sont basées sur les enregistrements `meeting_attendan
 - Défilement horizontal réservé aux tableaux très larges (22 colonnes), notamment sur mobile.
 - Impression A4 paysage avec réduction automatique des colonnes.
 - Aucun changement aux calculs financiers, à D1 ou à l'authentification.
+
+
+## Synchronisation des partages
+Le bilan de la section Partages est recalculé à partir de D1 lorsque le cycle est ouvert, à chaque nouvelle opération enregistrée, lors du retour sur l’onglet et toutes les 15 secondes pendant la consultation. Les chiffres de la prévisualisation sont synchronisés lorsque les valeurs changent. Les calculs ne doivent jamais utiliser les anciennes données du cache navigateur. Le bouton « Actualiser maintenant » permet également une synchronisation immédiate. Aucun changement de schéma D1 nécessaire.
