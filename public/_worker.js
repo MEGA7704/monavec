@@ -114,8 +114,10 @@ if(section==='partage_bilan'){
  const loans=await all('SELECT id,member_id,principal,interest_total,COALESCE(penalty_accrued,0) AS penalty_accrued,due_at,penalty_last_at,penalty_percent,penalty_frequency,status FROM loans WHERE org_id=? AND cycle_id=?',oid,cycleId);
  const repayments=await all('SELECT r.loan_id,r.principal_amount,r.interest_amount,r.penalty_amount FROM repayments r JOIN loans l ON l.id=r.loan_id WHERE r.org_id=? AND l.org_id=? AND l.cycle_id=?',oid,oid,cycleId);
  const expenses=await all('SELECT amount FROM expenses WHERE org_id=? AND cycle_id=?',oid,cycleId);
- const motifs=await all("SELECT id,reference,title,destination,contribution,frequency,start_date,end_date,status FROM solidarity_motifs WHERE org_id=? AND cycle_id=? AND destination='event' AND status='active' ORDER BY created_at",oid,cycleId);
- const contributions=await all('SELECT c.motif_id,c.member_id,c.amount FROM solidarity_contributions c JOIN solidarity_motifs m ON m.id=c.motif_id WHERE c.org_id=? AND m.org_id=? AND m.cycle_id=?',oid,oid,cycleId);
+ // L'état des partages est reconstruit UNIQUEMENT depuis les motifs réellement présents
+ // et encore actifs dans le cycle. Les mouvements orphelins ne sont jamais source de lignes.
+ const motifs=await all("SELECT m.id,m.reference,m.title,m.destination,m.contribution,m.frequency,m.start_date,m.end_date,m.status FROM solidarity_motifs AS m INNER JOIN cycles AS cy ON cy.id=m.cycle_id AND cy.org_id=m.org_id WHERE m.org_id=? AND m.cycle_id=? AND m.destination='event' AND m.status='active' AND m.withdrawn=0 ORDER BY m.created_at,m.id",oid,cycleId);
+ const contributions=await all("SELECT c.motif_id,c.member_id,c.amount FROM solidarity_contributions AS c INNER JOIN solidarity_motifs AS m ON m.id=c.motif_id AND m.org_id=c.org_id INNER JOIN cycles AS cy ON cy.id=m.cycle_id AND cy.org_id=m.org_id WHERE c.org_id=? AND m.org_id=? AND m.cycle_id=? AND m.destination='event' AND m.status='active' AND m.withdrawn=0",oid,oid,cycleId);
  const n=v=>Number(v||0), total=(arr,key)=>arr.reduce((a,x)=>a+n(x[key]),0);
  const by=(rows,key)=>new Map(rows.map(r=>[r[key],r]));let sv=by(savings,'member_id'),att=by(attendance,'member_id');
  let loanMembers=new Map(),loanPayments=new Map();

@@ -254,3 +254,17 @@ Les données de présence sont basées sur les enregistrements `meeting_attendan
 
 ## Synchronisation des partages
 Le bilan de la section Partages est recalculé à partir de D1 lorsque le cycle est ouvert, à chaque nouvelle opération enregistrée, lors du retour sur l’onglet et toutes les 15 secondes pendant la consultation. Les chiffres de la prévisualisation sont synchronisés lorsque les valeurs changent. Les calculs ne doivent jamais utiliser les anciennes données du cache navigateur. Le bouton « Actualiser maintenant » permet également une synchronisation immédiate. Aucun changement de schéma D1 nécessaire.
+
+
+## Correction des solidarités fantômes dans Partages
+- La requête des solidarités communes est liée à la table `cycles` et filtre exclusivement les motifs existants, de destination `event`, actifs, avec `withdrawn=0`.
+- Les paiements sont reliés par jointures aux mêmes motifs existants ; les contributions orphelines ne participent pas au bilan.
+- L'interface demande systématiquement des réponses non mises en cache.
+- Aucun effacement de la base D1 ni migration supplémentaire.
+
+Pour diagnostiquer des valeurs affichées, exécuter dans D1 (remplacer l'identifiant du cycle) :
+```sql
+SELECT m.id,m.reference,m.title,m.status,m.destination,m.withdrawn
+FROM solidarity_motifs m WHERE m.cycle_id='IDENTIFIANT_DU_CYCLE';
+```
+Attention : le montant non encaissé d'un motif valide peut inclure des cotisations planifiées mais non encore versées, y compris dans le futur ; il ne prouve pas l'existence de mouvements fictifs.
