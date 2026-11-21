@@ -310,14 +310,26 @@ if(section==='cycle_delete'){
  need(data.confirm_delete===true,'Confirmez la suppression définitive');
  const account=await db.prepare('SELECT password_hash,password_salt FROM users WHERE id=? AND org_id=? AND role=\'admin\' AND active=1').bind(u.id,oid).first();
  need(account&&typeof data.password==='string'&&equal(await hashPassword(data.password,account.password_salt),account.password_hash),'Mot de passe administrateur incorrect');
- // All statements execute atomically in D1.batch. No other association can be affected.
- const wh='org_id=? AND cycle_id=?';
- const tables=['meeting_attendance','repayments','distribution_items','distributions','savings','loans','solidarity','expenses','meetings'];
+ // Supprimer les enfants avant leurs parents : toutes les clés étrangères restent valides.
+ // D1.batch garantit une opération atomique (rollback si une suppression échoue).
+ // Le filtre sur l'organisation et le cycle évite toute suppression dans une autre AVEC.
  const counts={};
- for(const table of tables){
-  let sql=table==='repayments'?'SELECT COUNT(*) AS n FROM repayments WHERE org_id=? AND loan_id IN (SELECT id FROM loans WHERE org_id=? AND cycle_id=?)':table==='distribution_items'?'SELECT COUNT(*) AS n FROM distribution_items WHERE distribution_id IN (SELECT id FROM distributions WHERE org_id=? AND cycle_id=?)':`SELECT COUNT(*) AS n FROM ${table} WHERE ${wh}`;
-  let params=table==='repayments'?[oid,oid,cid]:[oid,cid];
-  let r=await db.prepare(sql).bind(...params).first();counts[table]=r.n;
+ const countQueries={
+  meeting_attendance:['SELECT COUNT(*) AS n FROM meeting_attendance WHERE org_id=? AND cycle_id=?',[oid,cid]],
+  repayments:['SELECT COUNT(*) AS n FROM repayments WHERE org_id=? AND loan_id IN (SELECT id FROM loans WHERE org_id=? AND cycle_id=?)',[oid,oid,cid]],
+  distribution_items:['SELECT COUNT(*) AS n FROM distribution_items WHERE distribution_id IN (SELECT id FROM distributions WHERE org_id=? AND cycle_id=?)',[oid,cid]],
+  distributions:['SELECT COUNT(*) AS n FROM distributions WHERE org_id=? AND cycle_id=?',[oid,cid]],
+  savings:['SELECT COUNT(*) AS n FROM savings WHERE org_id=? AND cycle_id=?',[oid,cid]],
+  loans:['SELECT COUNT(*) AS n FROM loans WHERE org_id=? AND cycle_id=?',[oid,cid]],
+  solidarity_contributions:['SELECT COUNT(*) AS n FROM solidarity_contributions WHERE org_id=? AND motif_id IN (SELECT id FROM solidarity_motifs WHERE org_id=? AND cycle_id=?)',[oid,oid,cid]],
+  solidarity_movement_sequences:['SELECT COUNT(*) AS n FROM solidarity_movement_sequences WHERE motif_id IN (SELECT id FROM solidarity_motifs WHERE org_id=? AND cycle_id=?)',[oid,cid]],
+  solidarity_motifs:['SELECT COUNT(*) AS n FROM solidarity_motifs WHERE org_id=? AND cycle_id=?',[oid,cid]],
+  solidarity:['SELECT COUNT(*) AS n FROM solidarity WHERE org_id=? AND cycle_id=?',[oid,cid]],
+  expenses:['SELECT COUNT(*) AS n FROM expenses WHERE org_id=? AND cycle_id=?',[oid,cid]],
+  meetings:['SELECT COUNT(*) AS n FROM meetings WHERE org_id=? AND cycle_id=?',[oid,cid]]
+ };
+ for(const [table,[sql,params]] of Object.entries(countQueries)){
+  const r=await db.prepare(sql).bind(...params).first();counts[table]=r.n;
  }
  const statements=[
   db.prepare('DELETE FROM meeting_attendance WHERE org_id=? AND cycle_id=?').bind(oid,cid),
@@ -326,6 +338,9 @@ if(section==='cycle_delete'){
   db.prepare('DELETE FROM distributions WHERE org_id=? AND cycle_id=?').bind(oid,cid),
   db.prepare('DELETE FROM savings WHERE org_id=? AND cycle_id=?').bind(oid,cid),
   db.prepare('DELETE FROM loans WHERE org_id=? AND cycle_id=?').bind(oid,cid),
+  db.prepare('DELETE FROM solidarity_contributions WHERE org_id=? AND motif_id IN (SELECT id FROM solidarity_motifs WHERE org_id=? AND cycle_id=?)').bind(oid,oid,cid),
+  db.prepare('DELETE FROM solidarity_movement_sequences WHERE motif_id IN (SELECT id FROM solidarity_motifs WHERE org_id=? AND cycle_id=?)').bind(oid,cid),
+  db.prepare('DELETE FROM solidarity_motifs WHERE org_id=? AND cycle_id=?').bind(oid,cid),
   db.prepare('DELETE FROM solidarity WHERE org_id=? AND cycle_id=?').bind(oid,cid),
   db.prepare('DELETE FROM expenses WHERE org_id=? AND cycle_id=?').bind(oid,cid),
   db.prepare('DELETE FROM meetings WHERE org_id=? AND cycle_id=?').bind(oid,cid),
