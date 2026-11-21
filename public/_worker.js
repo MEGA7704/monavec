@@ -99,6 +99,9 @@ if(path==='/api/change-password'&&post){let b=await readBody(req);need(validateP
 if(path==='/api/request-reset'&&post){let b=await readBody(req);await db.prepare('INSERT INTO reset_requests(id,org_id,user_id,reason,created_at) VALUES(?,?,?,?,?)').bind(id(),u.org_id,u.id,String(b.reason||'').slice(0,250),now()).run();await audit(db,u,'reset_requested',u.id);return j({ok:true});}
 if(path==='/api/load'&&method==='GET'){
 let section=url.searchParams.get('section')||'summary';if(section==='profile')return j({ok:true,data:{user:{name:u.name,email:u.email,role:u.role},plan:u.plan,expires:u.plan_expires_at}});
+if(section==='print_organization'){need(staff,'Accès réservé au personnel');need(u.org_id,'Association non sélectionnée');const org=await db.prepare('SELECT name,locality FROM organizations WHERE id=?').bind(u.org_id).first();need(org,'Association introuvable');return j({ok:true,data:org});}
+if(section==='print_members'){need(staff,'Accès réservé au personnel');need(u.org_id,'Association non sélectionnée');const rows=(await db.prepare('SELECT code,name,phone,locality,active FROM members WHERE org_id=? ORDER BY name,code').bind(u.org_id).all()).results;return j({ok:true,data:rows});}
+if(section==='print_loans'){need(staff,'Accès réservé au personnel');need(u.org_id,'Association non sélectionnée');const rows=(await db.prepare(`SELECT l.*,m.name AS member_name,(SELECT COALESCE(SUM(r.amount),0) FROM repayments r WHERE r.loan_id=l.id AND r.org_id=l.org_id) AS paid,(SELECT COALESCE(SUM(r.principal_amount),0) FROM repayments r WHERE r.loan_id=l.id AND r.org_id=l.org_id) AS paid_principal,(SELECT COALESCE(SUM(r.interest_amount),0) FROM repayments r WHERE r.loan_id=l.id AND r.org_id=l.org_id) AS paid_interest,(SELECT COALESCE(SUM(r.penalty_amount),0) FROM repayments r WHERE r.loan_id=l.id AND r.org_id=l.org_id) AS paid_penalty FROM loans l JOIN members m ON m.id=l.member_id AND m.org_id=l.org_id WHERE l.org_id=? ORDER BY l.created_at DESC`).bind(u.org_id).all()).results;return j({ok:true,data:rows});}
 if(section==='reset_requests'){need(admin,'Réservé aux administrateurs');let sql=sa?"SELECT r.*,u.name,u.email,u.role,o.name AS organization FROM reset_requests r JOIN users u ON r.user_id=u.id LEFT JOIN organizations o ON o.id=u.org_id WHERE r.status='pending' AND u.role='admin' ORDER BY r.created_at DESC LIMIT 100":"SELECT r.*,u.name,u.email,u.role FROM reset_requests r JOIN users u ON r.user_id=u.id WHERE r.org_id=? AND r.status='pending' AND u.role='agent' ORDER BY r.created_at DESC LIMIT 100";return j({ok:true,data:(await (sa?db.prepare(sql).all():db.prepare(sql).bind(u.org_id).all())).results});}
 if(sa){let tables={organizations:'SELECT * FROM organizations ORDER BY created_at DESC LIMIT 150',users:'SELECT id,org_id,email,name,role,active,created_at FROM users ORDER BY created_at DESC LIMIT 250',audit:'SELECT * FROM audit_logs ORDER BY created_at DESC LIMIT 150'};if(tables[section])return j({ok:true,data:(await db.prepare(tables[section]).all()).results});}
 need(!!u.org_id,'Choisissez une association depuis la section Super Admin');if(section==='summary')return j({ok:true,data:await summary(db,u.org_id)});
@@ -304,8 +307,12 @@ if(section==='cycle_update'){
 if(section==='cycle_delete'){
  need(u.role==='admin'&&!sa,'Seul l’administrateur de cette AVEC peut supprimer un cycle');
  need(typeof cid==='string'&&cid.length>0,'Cycle manquant');
- const cycle=await db.prepare('SELECT id,name,status FROM cycles WHERE id=? AND org_id=?').bind(cid,oid).first();
+ const cycle=await db.prepare('SELECT id,name,status,start_at,end_date,duration_months FROM cycles WHERE id=? AND org_id=?').bind(cid,oid).first();
  need(cycle,'Cycle introuvable dans votre AVEC');
+ const cycleStart=new Date(cycle.start_at).toISOString().slice(0,10);
+ const cycleEnd=cycle.end_date||endOfCycle(cycleStart,Number(cycle.duration_months)||12);
+ need(!!utcDate(cycleEnd),'Date de fin du cycle invalide');
+ need(new Date().toISOString().slice(0,10)>=cycleEnd,`Suppression impossible : la période du cycle se termine le ${cycleEnd}.`);
  need(data.confirm_name===cycle.name,'Le nom de confirmation ne correspond pas au cycle');
  need(data.confirm_delete===true,'Confirmez la suppression définitive');
  const account=await db.prepare('SELECT password_hash,password_salt FROM users WHERE id=? AND org_id=? AND role=\'admin\' AND active=1').bind(u.id,oid).first();
